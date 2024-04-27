@@ -1,0 +1,14 @@
+
+sudo apt install mosquitto-clients
+
+
+mosquitto_sub -L mqtt://95.84.240.66:1883/smit/9N3MiTS-TWG_WIcOpTFXQg/hashrate
+
+
+MQTT_BROKER = os.getenv('MQTT_BROKER', 'localhost')
+MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
+MQTT_TOPIC = os.getenv('MQTT_TOPIC', 'mining/+/stats')
+
+
+
+
