@@ -1,3 +1,5 @@
+![img.png](img.png)
+
 # Vast.ai XenBlocks Mining Assistant
 
 Welcome to TreeCityWes.eth's Vast.ai XenBlocks Mining Assistant! This Python tool optimizes XenBlocks X1 mining on Vast.ai, helping you monitor instance stats, terminate non-profitable instances, and discover new lucrative offers.
@@ -90,3 +92,28 @@ Or Buy Us A Coffee!
 
 This project is designed to work with Smit1237's XenBlocks Template on Vast.ai. 
 For more details, refer to the template and Docker links provided.
+
+
+
+leaderboard table data file:
+
+        <tr>
+          <td>2</td>
+          <td>0x7d39f1372f95fbb67d259ac26443b69eb944f1d0</td>
+          <td>385384</td>
+          <td>504</td> <!-- New cell -->
+          <td>100000.0</td> <!-- Moved to last position -->
+        </tr>
+
+Saved to DB: MinerStatistics(id=0x7c8d21f88291b70c1a05ae1f0bc6b53e52c4f28a, 
+rank=867, override=False, timestamp_s=1714164141, duration_hours=13.2, 
+cost_per_hour=0.047894715238161675, difficulty=0, hashrate=0.0, block=18, super=0, xuni=0)
+
+
+
+https://stackoverflow.com/questions/16196268/where-should-i-put-my-own-python-module-so-that-it-can-be-imported
+
+mkdir -p "`python -m site --user-site`"
+
+
+

@@ -1,0 +1,28 @@
+
+
+
+scp -P 49141 ../all.zip root@85.167.195.137:./
+
+
+ssh -p 49141 root@85.167.195.137 -L 8080:localhost:8080
+
+sudo apt install unzip
+unzip all.zip
+
+
+SSH to instance created with CLI:
+> ssh $(vastai ssh-url 10623038)
+
+Start-script:
+env >> /etc/environment; sudo apt install screen && screen -dmS miner && screen -x miner -X stuff $'wget https://github.com/woodysoil/XenblocksMiner/releases/download/v1.3.1/xenblocksMiner-1.3.1-linux.tar.gz && tar -zxvf xenblocksMiner-1.3.1-linux.tar.gz && chmod +x xenblocksMiner && ./xenblocksMiner --minerAddr 0xD76cb96Ac40FD3510648419925A645465570c822 --totalDevFee 0\n' && screen -x miner
+
+env >> /etc/environment; sudo apt install screen && screen -dmS miner && screen -x miner -X stuff $'wget https://github.com/woodysoil/XenblocksMiner/releases/download/v1.3.1/xenblocksMiner-1.3.1-linux.tar.gz && tar -zxvf xenblocksMiner-1.3.1-linux.tar.gz && chmod +x xenblocksMiner\n' && screen -x miner
+
+./xenblocksMiner --minerAddr 0xD76cb96Ac40FD3510648419925A645465570c822 --totalDevFee 0
+&& screen -x miner
+
+to exit Screen:
+Ctrl-A then D
+
+to resume Screen:
+screen -r miner
