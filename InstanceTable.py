@@ -95,9 +95,9 @@ class InstanceTable:
 
 
     def sort_on_hashrate_per_dollar(self):
-        addNums = lambda x: x.miner.hashrate_per_dollar() if x.miner else 0.0
+        hpd = lambda x: x.miner.hashrate_per_dollar() if x.miner else 0.0
 #        self.instances = sorted(self.instances, key=lambda inst: (inst.hashrate_per_dollar2()))
-        self.instances = sorted(self.instances, key=addNums, reverse=True)
+        self.instances = sorted(self.instances, key=hpd, reverse=True)
 
     def sort_on_cost(self):
         self.instances = sorted(self.instances, key=lambda inst: (inst.block_cost()))

@@ -18,7 +18,6 @@ class Time:
 
     @staticmethod
     def time_parts(tdelta: timedelta) -> tuple:
-
         total_min = int(tdelta.total_seconds()/60)
         day = int(total_min/24.0/60.0)
         hour = int((total_min/60) - day*24)
@@ -28,10 +27,11 @@ class Time:
 
 
     def subtract(self, hours: float, minutes: float) -> 'Time':
-        new_time: datetime = datetime.fromtimestamp(self.timestamp) + timedelta(hours=hours, minutes=minutes)
-        print(new_time)
-        print(type(new_time))
+        new_time: datetime = datetime.fromtimestamp(self.timestamp) - timedelta(hours=hours, minutes=minutes)
         return Time(new_time.timestamp())
+
+    def subtract_hours(self, hours: float) -> 'Time':
+        return self.subtract(hours, 0)
 
     def timedelta_from(self, timestamp2: float) -> timedelta:
         t2 = datetime.fromtimestamp(timestamp2)
@@ -44,6 +44,9 @@ class Time:
 
 
     def get_age_in_seconds(self, from_time: float) -> int:
+        if from_time < 0.000001:
+            return int(self.timestamp)
+
         tdelta: timedelta = self.timedelta_from(from_time)
         seconds = tdelta.seconds
         seconds += tdelta.days*24*3600

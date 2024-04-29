@@ -1,16 +1,12 @@
 
-import threading
 import requests
 from requests import Response
 import logging
-import traceback
 
-from MinerStatistics import MinerStatistics
-from VastAiCLI import VastAiCLI
-from VastQuery import VastQuery
-from VastInstance import VastInstance
+from Time import Time
+from XenBlocksWallet import XenBlocksWallet
 from tostring import auto_str
-import config
+
 
 DIFFICULTY_URL1 = "http://xenminer.mooo.com:4447/getallblocks2/109337"
 DIFFICULTY_URL2 = "http://xenminer.mooo.com/blockrate_per_day"
@@ -47,42 +43,46 @@ class XenBlocks:
             logging.error(f"Error fetching instances: {e}")
 
 
-    def get_miner_stats(self) -> list[MinerStatistics]:
+    def get_miner_stats(self) -> list[XenBlocksWallet]:
         stats_table: list = []
         text = self._get_leaderboard()
 #        print(text[1100:1800])
 #        text = "abc123 <tbody> <tr> <td>2</td> <td>0x7d39f1372f95fbb67d259ac26443b69eb944f1d0</td> <td>385384</td> <td>504</td> <!-- New cell --> <td>100000.0</td> <!-- Moved to last position --> </tr> </tbody> 123 efg"
 
-        tbody: list = self.get_elements("<tbody>", "</tbody>", text)
-        rows: list = self.get_elements("<tr>", "</tr>", tbody[0])
+        if not text:
+            return []
+
+        tbody: list = get_elements("<tbody>", "</tbody>", text)
+        rows: list = get_elements("<tr>", "</tr>", tbody[0])
 
         for row in rows:
-            fields: list = self.get_elements("<td>", "</td>", row)
+            fields: list = get_elements("<td>", "</td>", row)
             if len(fields) > 3:
-                stat: MinerStatistics = self.map_fields(fields)
+                stat: XenBlocksWallet = map_fields(fields)
                 stats_table.append(stat)
 
         return stats_table
 
 
-    def map_fields(self, fields: list) -> MinerStatistics:
+def map_fields(fields: list) -> XenBlocksWallet:
 
-        rank = int(fields[0])
-        addr = fields[1]
-        block = int(fields[2])
-        sup = int(fields[3])
-        xuni = 0
-        return MinerStatistics(addr, block, sup, xuni, 0.0, 0.0, 0, 0.0, rank)
+    rank = int(fields[0])
+    addr = fields[1]
+    block = int(fields[2])
+    sup = int(fields[3])
+    xuni = 0
+    timestamp = Time.now().timestamp
+    return XenBlocksWallet(addr, rank, block, sup, xuni, timestamp, 0.0)
 
 
-    def get_elements(self, start_tag: str, end_tag: str, from_text: str):
-        # Split on end tag
-        elements: list = from_text.split(end_tag)
+def get_elements(start_tag: str, end_tag: str, from_text: str):
+    # Split on end tag
+    elements: list = from_text.split(end_tag)
 
-        # Remove text outside the start tag
-        elements = list(filter(lambda x: start_tag in x, elements))
-        elements = list(map(lambda x: x.split(start_tag)[1].strip(), elements))
-        return elements
+    # Remove text outside the start tag
+    elements = list(filter(lambda x: start_tag in x, elements))
+    elements = list(map(lambda x: x.split(start_tag)[1].strip(), elements))
+    return elements
 
 
 #

@@ -6,6 +6,8 @@ from VastQuery import VastQuery
 from VastOffer import VastOffer
 from tostring import auto_str
 from config import *
+from Field import Field
+from constants import *
 
 
 @auto_str
@@ -82,13 +84,18 @@ class VastAiCLI:
 
 
     def run(self, command: list) -> dict:
-        print("INFO >>> ", command)
+        f = Field(GRAY)
+        print(f.format("INFO >>> "), f.format(str(command)))
 
         response = self.__execute_command(command) #, capture_output=True, text=True)
-        if response.stderr:
+
+        if not response:
+            print("Error >>> no response received")
+
+        elif response.stderr:
             print("Error >>> ", response.stderr.strip())
 
-        if response.stdout:
+        elif response.stdout:
             try:
                 return json.loads(response.stdout)
 

@@ -21,10 +21,16 @@ class DbManager:
 
 
     def insert(self, prepared_statement: str, params: tuple):
+        print("insert2: ", params)
         with closing(self._open()) as connection:
             connection.cursor().execute(prepared_statement, params)
             connection.commit()
 
+    def update(self, prepared_statement: str, params: tuple):
+        print("update2: ", params)
+        with closing(self._open()) as connection:
+            connection.cursor().execute(prepared_statement, params)
+            connection.commit()
 
     def _open(self):
         self.connection = self.open()

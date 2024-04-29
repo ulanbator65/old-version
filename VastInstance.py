@@ -1,5 +1,5 @@
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from Time import Time
 from tostring import auto_str
 from config import VAST_IMAGE, WHITELIST, MANUAL_MODE
@@ -21,7 +21,6 @@ class VastInstance:
         self.min_bid: float = json.get('min_bid')
         self.start_date = json.get('start_date', None)
         self.duration = json.get('duration', None)
-        print("Duration: ", self.duration)
 
         self.public_ipaddr = json.get('public_ipaddr', '').strip()
         self.external_port = json.get('ports', {}).get('8080/tcp', [{}])[0].get('HostPort', None)
@@ -96,7 +95,7 @@ class VastInstance:
         self.miner = MinerStatistics.from_json(json, id, self.get_age_in_hours(), self.cost_per_hour)
         override_data = self.miner_repo.get(id)
         self.miner.override_data(override_data)
-        self.miner.normalize()
+        self.miner.normalize(self.get_age_in_hours())
 
 
 
@@ -130,11 +129,9 @@ class VastInstance:
         return VastInstanceRules.is_dead(self.actual_status)
 
     def is_model_a40(self) -> bool:
-        print(self.gpu_name_short)
         return VastInstanceRules.is_model_A40(self.gpu_name_short)
 
     def is_model_a5000(self) -> bool:
-        print(self.gpu_name_short)
         return VastInstanceRules.is_model_A5000(self.gpu_name_short)
 
     def get_age_in_seconds(self, start_timestamp) -> float:

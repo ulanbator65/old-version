@@ -113,7 +113,8 @@ cost_per_hour=0.047894715238161675, difficulty=0, hashrate=0.0, block=18, super=
 
 https://stackoverflow.com/questions/16196268/where-should-i-put-my-own-python-module-so-that-it-can-be-imported
 
+```bash
 mkdir -p "`python -m site --user-site`"
-
+```
 
 

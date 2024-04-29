@@ -69,10 +69,10 @@ class BuyMenu:
                     '9': 'RTX_3070'
                 }.get(offer_type, '')
 
-                self.select_top_offers(criterion=criterion, gpu_model=gpu_model)
+                self.select_top_offers(criterion=criterion, gpu_model=gpu_model, max_bid=0.7)
 
 
-    def select_top_offers(self, criterion: dict, gpu_model: dict, max_bid = 2.0):
+    def select_top_offers(self, criterion: dict, gpu_model: dict, max_bid=0.7):
         nr_gpus = 1
         top_offers = self.search_top_offers(50, nr_gpus, max_bid, criterion=criterion, gpu_model=gpu_model)
 
@@ -151,6 +151,7 @@ class BuyMenu:
         query = VastQuery.gpu_model_query(gpu_model)
         query.min_gpus = min_gpus
         query.max_bid = max_bid
+        query.tflop_price = 150.0
         query.verified = False
 
         offers_response = self.vast.get_offers(query)

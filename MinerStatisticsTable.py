@@ -5,10 +5,11 @@ from prettytable.colortable import *
 from VastClient import VastClient
 from VastInstance import VastInstance
 from MinerStatistics import MinerStatistics
-from MinerStatisticsHistoryRepo import MinerStatisticsHistoryRepo
+from XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
 from MinerGroup import MinerGroup
 from Field import Field
 import XenBlocksCache as Cache
+from XenBlocksWallet import XenBlocksWallet
 from Time import Time
 
 from constants import *
@@ -22,7 +23,7 @@ class MinerStatisticsTable:
     def __init__(self, vast: VastClient):
 
         self.vast_instances = vast.get_instances()
-        self.db = MinerStatisticsHistoryRepo()
+        self.db = XenBlocksWalletHistoryRepo()
         self.snapshot_time: datetime = datetime.now()
         # Statistics
         self.miner_stats = None
@@ -39,13 +40,15 @@ class MinerStatisticsTable:
 
     def load_miners(self):
         addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower(),
-                           "0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23".lower(),
+#                           "0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23".lower(),
                            "0xd9007A12b33b699Ee01B7D6f9D9fEae42AB5145C".lower(),
-                           "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA".lower()]
+                           "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA".lower()
+                           ]
 
 #        addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower()]
+#        addr_list: list = ["0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23".lower()]
 
-        rank200: MinerStatistics = Cache.get_miner_stats_for_rank(200)
+        rank200: XenBlocksWallet = Cache.get_miner_stats_for_rank(200)
 
         print(ui.text_color("Rank 200: ", LIGHT_PINK), ui.text_color(str(rank200), LIGHT_PINK))
 
@@ -61,23 +64,62 @@ class MinerStatisticsTable:
         self.miner_groups = miner_groups
 
 
+    def map(self, w: XenBlocksWallet) -> MinerStatistics:
+        return MinerStatistics(w.addr, w.block, w.sup, w.xuni, 0, 0)
+
+
     def create_miner_group(self, addr: str) -> MinerGroup:
         vast_instances = self.get_instances_for_address(addr)
 
-        miner_group: MinerGroup = MinerGroup(addr, vast_instances)
-        miner_group.stats.cost_per_hour = self.calculate_total_cost(addr)
-#        print(miner_group.stats)
+        wallet_snapshot = Cache.get_wallet_snapshot(addr)
 
-        old_snapshot = self.select_snapshot_from_history(miner_group.id, 1)
-        if old_snapshot:
-            miner_group.subtract(old_snapshot)
+        test = self.db.get(addr)
+        for t in test[:4]:
+            print("Hist: ", t)
+
+        timestamp_s = Time.now().subtract_hours(6).timestamp
+        historic_value = self.select_snapshot_from_history(addr, int(timestamp_s))
+
+        if historic_value:
+            dblock = wallet_snapshot.block - historic_value.block
+            dsuper = wallet_snapshot.sup - historic_value.sup
+            dxuni = wallet_snapshot.xuni - historic_value.xuni
+            dtime_s = (wallet_snapshot.timestamp_s - historic_value.timestamp_s)/3600
+            stats = MinerStatistics(addr, dblock, dsuper, dxuni, dtime_s, 0.111)
+            if dsuper != 0:
+                print(wallet_snapshot)
+                print(historic_value)
+        else:
+            stats = MinerStatistics(addr, 0, 0, 0, 0, 0.0)
+
+        miner_group: MinerGroup = MinerGroup(stats, vast_instances)
+        miner_group.stats.cost_per_hour = self.calculate_total_cost(addr)
+
+        # Save historic data
+        self.save_historic_data(wallet_snapshot)
 
         return miner_group
 
 
-    def select_snapshot_from_history(self, id: str, min_hours: int) -> MinerStatistics:
+    def select_snapshot_from_history(self, addr: str, timestamp: int) -> XenBlocksWallet:
+        historic_value = self.db.get_for_timestamp(addr, timestamp)
+
+        print("Timestamp: ", timestamp)
+        print("Hist: ", historic_value)
+        if historic_value:
+            return historic_value
+
+        history: list[tuple] = self.db.get(addr)
+
+        if history:
+            row = history[len(history) - 1]
+            return self.db.map_row(row)
+        else:
+            return None
+
+
         now = Time.now()
-        history: list[tuple] = self.db.get(id)
+        history: list[tuple] = self.db.get(addr)
 
 #        print(f"Hist size: {len(history)}")
 
@@ -91,7 +133,7 @@ class MinerStatisticsTable:
             tdelta = now.timedelta_from(snapshot[1])
             timeparts = Time.time_parts(tdelta)
             hours = timeparts[1]
-            if hours >= min_hours:
+            if hours >= 1:
                 return self.db.map_row(snapshot)
 
         return self.db.map_row(history[len(history) - 1])
@@ -104,27 +146,32 @@ class MinerStatisticsTable:
 #        print(result[0])
 
         self.load_miners()
-        self.save_miner_stats()
+#        self.save_miner_stats()
         self.print_table()
 
 
-    def save_miner_stats(self):
+    def save_historic_data(self, snapshot: XenBlocksWallet):
 
-        for mg in self.miner_groups:
-            stats: MinerStatistics = mg.stats
+        now = Time.now()
+        print(now.get_age_in_seconds(0)/3600)
+        t = Time.now()
+        print(now.timestamp/3600)
 
-            # Save to DB once per hour at the most
-            stats2 = self.db.get_latest_version(mg.id)
-            if stats2:
-                diff_seconds = (stats.timestamp_s - stats2.timestamp_s)
-                diff = diff_seconds / 3600
-                print(diff)
+        now = now.timestamp
 
-                if diff > 0.99:
-                    self.db.create(mg.id, stats)
-                    print(f"Saved to DB: {stats}")
-            else:
-                self.db.create(mg.id, stats)
+        # Save to DB once per hour at the most
+        latest_snapshot = self.db.get_latest_version(snapshot.addr)
+        if latest_snapshot:
+            diff_seconds = (now - latest_snapshot.timestamp_s)
+            diff = diff_seconds / 3600
+            print("Diff: ", diff)
+
+            if diff > 0.99:
+                self.db.create(snapshot)
+                print(f"Saved to DB: {snapshot}")
+        else:
+            self.db.create(snapshot)
+            print(f"Saved to DB: {snapshot}")
 
 
     def calculate_total_cost(self, address: str) -> float:
@@ -203,7 +250,7 @@ class MinerStatisticsTable:
             # Miner total stats
             self.tot_hashrate += stats.hashrate
             self.tot_block += stats.block
-            self.tot_super += stats.super
+            self.tot_super += stats.sup
             self.tot_XUNI += stats.xuni
             self.tot_block_rate += stats.block_rate(0.1)
 
@@ -255,7 +302,7 @@ class MinerStatisticsTable:
             f"${mg.stats.block_cost():.3f}",
             f"{mg.stats.blocks_per_day(default=0.1):.1f}",          # 7
             str(mg.stats.block),          # 7
-            str(mg.stats.super),             # 15
+            str(mg.stats.sup),             # 15
             str(mg.stats.xuni)
             # 10
         ]

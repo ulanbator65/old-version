@@ -102,7 +102,8 @@ class MainMenu:
             self.terminate.purge_dead_instances(self.table)
 
         elif choice == INCREASE_BID:
-            self.automation.increase_bid(self.table.instances)
+            pass
+#            self.automation.increase_bid(self.table.instances)
 
         elif choice == M_RESET:
             self.table.reset_hours()
