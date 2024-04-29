@@ -54,13 +54,13 @@ class MinerStatisticsTable:
 
 #        self.db.get()
 
-        print(">>>>>>>>>>>>>>>>>")
+#        print(">>>>>>>>>>>>>>>>>")
         miner_groups = []
         for addr in addr_list:
             group = self.create_miner_group(addr)
             miner_groups.append(group)
 
-        print(">>>>>>>>>>>>>>>>>")
+#        print(">>>>>>>>>>>>>>>>>")
         self.miner_groups = miner_groups
 
 
@@ -73,14 +73,8 @@ class MinerStatisticsTable:
 
         wallet_snapshot = Cache.get_wallet_snapshot(addr)
 
-        test = self.db.get(addr)
-        for t in test[:4]:
-            print("Hist: ", t)
-
-
         timestamp_s = Time.now().subtract_hours(1).timestamp
         historic_value = self.select_snapshot_from_history(addr, int(timestamp_s))
-        print("Snapshot found: ", str(historic_value))
 
         if historic_value:
             dblock = wallet_snapshot.block - historic_value.block
@@ -88,9 +82,6 @@ class MinerStatisticsTable:
             dxuni = wallet_snapshot.xuni - historic_value.xuni
             dtime_s = (wallet_snapshot.timestamp_s - historic_value.timestamp_s)/3600
             stats = MinerStatistics(addr, dblock, dsuper, dxuni, dtime_s, 0.111)
-            if dsuper != 0:
-                print(wallet_snapshot)
-                print(historic_value)
         else:
             stats = MinerStatistics(addr, 0, 0, 0, 0, 0.0)
 
@@ -105,9 +96,6 @@ class MinerStatisticsTable:
 
     def select_snapshot_from_history(self, addr: str, timestamp: int) -> XenBlocksWallet:
         historic_value = self.db.get_for_timestamp(addr, timestamp)
-
-        print("Timestamp: ", timestamp)
-        print("Hist: ", historic_value)
         if historic_value:
             return historic_value
 
@@ -119,27 +107,6 @@ class MinerStatisticsTable:
             return snapshot
         else:
             return None
-
-
-        now = Time.now()
-        history: list[tuple] = self.db.get(addr)
-
-#        print(f"Hist size: {len(history)}")
-
-        if len(history) == 0:
-            return None
-
-        for snapshot in history:
-            print(snapshot)
-
-        for snapshot in history:
-            tdelta = now.timedelta_from(snapshot[1])
-            timeparts = Time.time_parts(tdelta)
-            hours = timeparts[1]
-            if hours >= 1:
-                return self.db.map_row(snapshot)
-
-        return self.db.map_row(history[len(history) - 1])
 
 
     def print(self):
@@ -155,26 +122,19 @@ class MinerStatisticsTable:
 
     def save_historic_data(self, snapshot: XenBlocksWallet):
 
-        now = Time.now()
-        print(now.get_age_in_seconds(0)/3600)
-        t = Time.now()
-        print(now.timestamp/3600)
-
-        now = now.timestamp
+        now = Time.now().timestamp
 
         # Save to DB once per hour at the most
         latest_snapshot = self.db.get_latest_version(snapshot.addr)
         if latest_snapshot:
             diff_seconds = (now - latest_snapshot.timestamp_s)
-            diff = diff_seconds / 3600
-            print("Diff: ", diff)
+            diff_minutes = diff_seconds / 60
 
-            if diff > 0.99:
+            if diff_minutes > 60.0:
                 self.db.create(snapshot)
                 print(f"Saved to DB: {snapshot}")
         else:
             self.db.create(snapshot)
-            print(f"Saved to DB: {snapshot}")
 
 
     def calculate_total_cost(self, address: str) -> float:

@@ -19,6 +19,10 @@ class DbManager:
             return connection.cursor()\
                 .execute(prepared_statement, params).fetchall()
 
+    def select_all(self, sql: str) -> list:
+        with closing(self._open()) as connection:
+            return connection.cursor() \
+                .execute(sql).fetchall()
 
     def insert(self, prepared_statement: str, params: tuple):
         print("insert2: ", params)

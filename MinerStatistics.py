@@ -67,19 +67,14 @@ class MinerStatistics:
         xuni_offset = 0
         if old_offset:
             block_offset = old_offset[2]
-            # TODO: xuni
-#            xuni_offset = old_offset[4]
+            xuni_offset = old_offset[3]
 
         # Include the current count into offset
         block_offset += self.block
-#        xuni_offset += self.xuni
-
-        print("Before update", str(db.get(self.id)))
+        xuni_offset += self.xuni
 
         # Save new offset
         db.update(self.id, hours_offset, block_offset)
-
-        print("After", str(db.get(self.id)))
 
         self.duration_hours = 0.0
         self.block -= block_offset
