@@ -22,7 +22,7 @@ class MinerStatistics:
         self.difficulty: int = difficulty
         self.hashrate: float = hashrate
         self.block: int = block
-        self.super: int = sup
+        self.sup: int = sup
         self.xuni: int = xuni
 
 
@@ -50,49 +50,52 @@ class MinerStatistics:
         return copy.deepcopy(self)
 
 
-    def reset_hours(self, hours: float):
+    def reset_hours(self, total_hours: float):
         db = MinerStatisticsRepo()
-        new_hours: float = round(hours, 1)
+        hours_offset: float = round(total_hours, 1)
 
         # If miner was restarted, all counters are reset to zero - just save the hours offset
-        if self.block <= 0:
-            db.update(self.id, new_hours, 0)
-            self.duration_hours = 0.0
-            return
+#        if self.block <= 0:
+#            db.update(self.id, new_hours, 0)
+#            self.duration_hours = 0.0
+#            return
 
         # Read old offset
         old_offset = db.get(self.id)
 
         block_offset = 0
-
+        xuni_offset = 0
         if old_offset:
             block_offset = old_offset[2]
-        # Include the current block count into offset
-        block_offset += self.block
-        # Save new offset
-        db.update(self.id, new_hours, block_offset)
+            # TODO: xuni
+#            xuni_offset = old_offset[4]
 
-#        print(db.get(self.id))
+        # Include the current count into offset
+        block_offset += self.block
+#        xuni_offset += self.xuni
+
+        # Save new offset
+        db.update(self.id, hours_offset, block_offset)
 
         self.duration_hours = 0.0
         self.block -= block_offset
 
 
-    def normalize(self):
+    def normalize(self, total_duration):
         # Auto reset in the case the miner was restarted
-        if MinerRules.should_reset_hours(self.block):
-            self.block = 0
-            self.reset_hours(0)
+        if MinerRules.should_reset_hours(self.block, self.xuni):
+#            self.block = 0
+            self.reset_hours(total_duration)
 
 
     #
     # Handle that Vast instances are rebooted sporadically thereby resetting miner data
     #
-    def override_data(self, data: list):
+    def override_data(self, data: tuple):
         if not data or len(data) < 3:
             return
 
-#        print(data)
+        print("Over: ", data)
 
         # If the managed instance was rebooted thereby resetting miner data -
         # offset block count and hours as a workaround

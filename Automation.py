@@ -96,8 +96,8 @@ class Automation:
 
     def offers_A40(self, dflop=220) -> list[VastOffer]:
         query = VastQuery.gpu_model_query("A40")
-        query.max_bid = 1.1
-        query.tflop_price = dflop
+        query.max_bid = 0.99
+#        query.tflop_price = dflop
 
         return self.get_top_offers(query)
 
@@ -107,6 +107,7 @@ class Automation:
         query.max_result = 10
         query.min_gpus = 8
         query.max_bid = 0.5
+        query.tflop_price = 199
 
         return self.get_top_offers(query)
 
@@ -114,7 +115,6 @@ class Automation:
     def offers_A5000(self, dflop_min: int = 0) -> list[VastOffer]:
         query = VastQuery.gpu_model_query("RTX_A5000")
         query.max_result = 10
-        query.min_gpus = 1
         query.max_bid = 0.99
         query.tflop_price = dflop_min
 

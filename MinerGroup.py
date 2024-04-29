@@ -2,29 +2,22 @@
 
 from VastInstance import VastInstance
 from MinerStatistics import *
-from MinerStatisticsHistoryRepo import MinerStatisticsHistoryRepo
-import XenBlocksCache as Cache
+from XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
+from XenBlocksWallet import XenBlocksWallet
 
 
 class MinerGroup:
 
-    def __init__(self, id: str, vast_instances: list[VastInstance]):
-        self.id = id.lower()
+    def __init__(self, stats: MinerStatistics, vast_instances: list[VastInstance]):
+        self.id = stats.id.lower()
         self.instances: list[VastInstance] = vast_instances
-        self.stats = Cache.get_miner_stats_for_address(id)
-        self.db = MinerStatisticsHistoryRepo()
+        self.stats = stats
+        self.historic_snapshot = None
+        self.db = XenBlocksWalletHistoryRepo()
 
         active_miners = list(filter(lambda x: x.is_running(), self.instances))
         self.total_miners: int = len(self.instances)
         self.active_miners: int = len(active_miners)
-
-
-    def subtract(self, other: MinerStatistics):
-        duration_seconds = self.stats.timestamp_s - other.timestamp_s
-        self.stats.duration_hours = round(duration_seconds / 3600, 1)
-        self.stats.block = (self.stats.block - other.block)
-        self.stats.super = (self.stats.super - other.super)
-        self.stats.xuni = (self.stats.xuni - other.xuni)
 
 
     def effect(self) -> float:

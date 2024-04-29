@@ -41,22 +41,6 @@ class VastClient:
         return instances
 
 
-#    def get_instances(self, addr: str) -> list[VastInstance]:
-#        all = self.get_instances()
-
-
-# https://console.vast.ai/api/v0/instances/reboot/{id}
-    def reboot_not_working(self, instance_id: int):
-        headers = {"Authorization": f"Bearer {self.api_key}", "Accept": "application/json"}
-        try:
-            url = INSTANCE_URL+"/reboot/"+str(instance_id)
-            response = requests.request("PUT", url, headers=headers)
-            response.raise_for_status()
-
-        except requests.RequestException as e:
-            logging.error(f"Error rebooting instance: {e}")
-
-
     def instance_from_json(self, json: dict) -> 'VastInstance':
         return VastInstance(json)
 
@@ -79,10 +63,10 @@ class VastClient:
         result = VastAiCLI(self.api_key).reboot(instance_id)
 
         if result:
-            print(f"Instance {instance_id} terminated successfully.")
+            print(f"Instance {instance_id} rebooted successfully.")
             print(result)
         else:
-            print(f"Failed to terminate instance {instance_id}.")
+            print(f"Failed to reboot instance {instance_id}.")
 
 
     def kill_instance(self, instance_id):

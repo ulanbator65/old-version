@@ -1,6 +1,6 @@
 
+from XenBlocksWallet import XenBlocksWallet
 from XenBlocks import XenBlocks
-from MinerStatistics import MinerStatistics
 from cachetools import cached, TTLCache
 
 
@@ -9,28 +9,29 @@ ONE_MINUTE = 60
 xenblocks = XenBlocks()
 
 
-def get_miner_stats_for_address(addr: str) -> MinerStatistics:
-    iterator = filter(lambda x: x.id.lower() == addr.lower(), __get_cache())
-    return _get_first(iterator)
+def get_wallet_snapshot(addr: str) -> XenBlocksWallet:
+    iterator = filter(lambda x: x.addr.lower() == addr.lower(), __get_cache())
+    latest = _get_first(iterator)
+    print("Latest: ", latest)
+    return latest
 
 
-def get_miner_stats_for_rank(rank: int) -> MinerStatistics:
+def get_miner_stats_for_rank(rank: int) -> XenBlocksWallet:
     iterator = filter(lambda x: x.rank == rank, __get_cache())
     return _get_first(iterator)
 
 
-def get_miner_stats() -> list[MinerStatistics]:
+def get_miner_stats() -> list[XenBlocksWallet]:
     __get_cache.cache_clear()
     return __get_cache()
 
 
-@cached(cache=TTLCache(maxsize=1, ttl=2*ONE_MINUTE))
-def __get_cache() -> list[MinerStatistics]:
+@cached(cache=TTLCache(maxsize=1, ttl=ONE_MINUTE))
+def __get_cache() -> list[XenBlocksWallet]:
     print("XenBlocksCache loaded...")
     return xenblocks.get_miner_stats()
 
 
 # Cache objects are mutable so return a copy
-def _get_first(iterator) -> MinerStatistics:
-    s: MinerStatistics = list(iterator)[0]
-    return s.clone()
+def _get_first(iterator) -> XenBlocksWallet:
+    return list(iterator)[0].clone()

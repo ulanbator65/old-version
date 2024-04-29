@@ -6,8 +6,14 @@ from sqlite3 import Connection
 from DbManager import DbManager
 from config import DB_NAME
 
+INSERT = "INSERT INTO miner VALUES(?, ?, ?, ?)"
+UPDATE = "UPDATE miner SET hours=?, blocks=?, timestamp=? WHERE id=?"
+SELECT = "SELECT * FROM miner WHERE id = ?"
+DELETE = "DELETE FROM miner WHERE id=?"
+
 
 class MinerStatisticsRepo:
+
     def __init__(self, db_man: DbManager = DbManager(DB_NAME)):
         self.db: DbManager = db_man
         self.connection: Connection = None
@@ -21,51 +27,43 @@ class MinerStatisticsRepo:
 
 
     def create(self, id: str, hours: float, blocks: int):
-        with closing(self.__open()) as connection:
-            self.__insert(id, hours, blocks)
-            self.connection.commit()
+        params: tuple = (id, hours, blocks, int(datetime.now().timestamp()))
+
+        self.db.insert(INSERT, params)
 
 
     def update(self, id: str, hours: float, blocks: int):
-        norm = hours if hours > 0.0 else 0.0
+        params: tuple = (id, hours, blocks, int(datetime.now().timestamp()))
 
-        with closing(self.__open()) as connection:
+        if hours < 0.001:
+            raise Exception("WTF!!!")
 
-            if not self.__select(id):
-                self.__insert(id, norm, blocks, datetime.now().timestamp())
-            else:
-                self.__update(id, norm, blocks, datetime.now().timestamp())
-            self.connection.commit()
+        row = self.get(id)
+        if not row:
+            self.db.insert(INSERT, params)
+        else:
+            self.db.update(UPDATE, params)
 
 
     def get(self, id: str):
-        with closing(self.__open()) as connection:
-            result = connection.cursor().execute("SELECT * FROM miner WHERE id = ?", (id,)).fetchall()
-            return result[0] if len(result) > 0 else None
-#            r = self.__select(instance_id)
-#            return r
+        params: tuple = (id,)
+        result = self.db.select(SELECT, params)
+
+        if len(result) > 1:
+            print(result)
+            raise Exception("WTF!!!")
+
+        return result[0] if len(result) > 0 else None
+
+#        with closing(self.__open()) as connection:
+#            result = connection.cursor().execute("SELECT * FROM miner WHERE id = ?", (id,)).fetchall()
+#            return result[0] if len(result) > 0 else None
 
 
     def __create_table(self):
         sql = "CREATE TABLE IF NOT EXISTS miner (id STRING PRIMARY KEY, hours NUMBER, blocks INTEGER, timestamp STRING)"
         self.execute(sql)
 
-    def __insert(self, id: str, hours: float, blocks: int, timestamp: float):
-#        with closing(self.connection.cursor()) as cursor:
-        self.connection.cursor().execute("INSERT INTO miner VALUES(?, ?, ?, ?)", (id, hours, blocks, timestamp))
-
-    def __update(self, id: str, hours: float, blocks: int, timestamp: float):
-#        with closing(self.connection.cursor()) as cursor:
-        self.connection.cursor().execute("UPDATE miner SET hours=?, blocks=?, timestamp=? WHERE id=?", (hours, blocks, timestamp, id))
-
-    def __select(self, id: str) -> tuple:
-#        with closing(self.connection.cursor()) as cursor:
-        result = self.connection.cursor().execute("SELECT * FROM miner WHERE id = ?", (id,)).fetchall()
-        return result[0] if len(result) > 0 else None
-
-    def __delete(self, id: str):
-        with closing(self.connection.cursor()) as cursor:
-            cursor.execute("DELETE FROM miner WHERE id=?", id)
 
     def delete_all(self):
         with closing(self.__open()) as connection:

@@ -40,26 +40,9 @@ class VastMinerTable:
         return None
 
 
-    def get_managed_instances(self) -> list:
-        iterator = filter(lambda x: x.is_managed, self.instances)
-        return list(iterator)
-
-
     def get_instances_for_address(self, addr: str) -> list:
         filtered_list = list(filter(lambda x: x.addr and x.addr.lower() == addr.lower(), self.instances))
-
-        # Auto reset when block count is negative (due to offset calculation)
-#        for inst in filtered_list:
-#            if inst.is_miner_online() and inst.miner.block < -0.1:
-#                inst.reset_hours()
-
         return filtered_list
-
-
-    def get_manual_instances(self) -> list:
-        iterator = filter(lambda x: not x.is_managed, self.instances)
-        return list(iterator)
-
 
     def sort_on_hashrate_per_dollar(self):
         addNums = lambda x: x.miner.hashrate_per_dollar() if x.miner else 0.0
@@ -131,7 +114,7 @@ class VastMinerTable:
                 # Miner total stats
                 self.tot_hashrate += stats.hashrate
                 self.tot_block += stats.block
-                self.tot_super += stats.super
+                self.tot_super += stats.sup
                 self.tot_XUNI += stats.xuni
                 self.tot_block_rate += stats.block_rate()
 
@@ -139,7 +122,7 @@ class VastMinerTable:
                 # Miner total stats
                 total.hashrate += stats.hashrate
                 total.block += stats.block
-                total.super += stats.super
+                total.sup += stats.sup
                 total.xuni += stats.xuni
 
             #
@@ -195,7 +178,7 @@ class VastMinerTable:
 
 
     def get_row(self, row_nr: int, rental_since: str, ins: VastInstance) -> list:
-        supers = str(ins.miner.super) if ins.miner.super > 0 else ""
+        supers = str(ins.miner.sup) if ins.miner.sup > 0 else ""
         addr = ins.addr[0:6] + "..." if ins.addr else "-"
         link = f"http://" + ins.get_host() if ins.get_host() else "N/A"
         override = "X" if ins.is_manual_override() else ""
@@ -318,7 +301,6 @@ class VastMinerTable:
         ]
 
 
-
     def get_rented_since(self, ins: VastInstance):
         if not ins.start_date:
             return "N/A"
@@ -346,6 +328,7 @@ class VastMinerTable:
                 return ins.miner.difficulty
 
         return 0
+
 
     def get_row_color(self, ins: VastInstance):
         if ins.is_miner_online() and ins.miner.hashrate < 1.0:

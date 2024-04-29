@@ -1,10 +1,10 @@
 
 from MinerStatistics import MinerStatistics
-from MinerStatisticsHistoryRepo import MinerStatisticsHistoryRepo
+from XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
 
 
 class MinerDbRules:
-    def __init__(self, db: MinerStatisticsHistoryRepo):
+    def __init__(self, db: XenBlocksWalletHistoryRepo):
         self.db = db
 
     def should_save_to_db(self, id: str, timestamp_s):
