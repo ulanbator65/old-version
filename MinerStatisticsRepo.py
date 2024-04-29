@@ -6,10 +6,11 @@ from sqlite3 import Connection
 from DbManager import DbManager
 from config import DB_NAME
 
-INSERT = "INSERT INTO miner VALUES(?, ?, ?, ?)"
-UPDATE = "UPDATE miner SET hours=?, blocks=?, timestamp=? WHERE id=?"
+INSERT = "INSERT INTO miner VALUES(?, ?, ?, ?, ?)"
+UPDATE = "UPDATE miner SET hours=?, blocks=?, xuni=?, timestamp=? WHERE id=?"
 SELECT = "SELECT * FROM miner WHERE id = ?"
 DELETE = "DELETE FROM miner WHERE id=?"
+CREATE_TABLE = "CREATE TABLE IF NOT EXISTS miner (id STRING PRIMARY KEY, hours NUMBER, blocks INTEGER, xuni INTEGER, timestamp STRING)"
 
 
 class MinerStatisticsRepo:
@@ -27,21 +28,21 @@ class MinerStatisticsRepo:
 
 
     def create(self, id: str, hours: float, blocks: int):
-        params: tuple = (id, hours, blocks, int(datetime.now().timestamp()))
+        params: tuple = (id, hours, blocks, 0, int(datetime.now().timestamp()))
 
         self.db.insert(INSERT, params)
 
 
     def update(self, id: str, hours: float, blocks: int):
         # Note!!!  ID must be last in the tuple for the 'where' clause to work
-        params: tuple = (hours, blocks, int(datetime.now().timestamp()), id)
+        params: tuple = (hours, blocks, 0, int(datetime.now().timestamp()), id)
 
         if hours < 0.001:
             raise Exception("WTF!!!")
 
         row = self.get(id)
         if not row:
-            self.db.insert(INSERT, params)
+            self.create(id, hours, blocks)
         else:
             self.db.update(UPDATE, params)
 
@@ -62,8 +63,7 @@ class MinerStatisticsRepo:
 
 
     def __create_table(self):
-        sql = "CREATE TABLE IF NOT EXISTS miner (id STRING PRIMARY KEY, hours NUMBER, blocks INTEGER, timestamp STRING)"
-        self.execute(sql)
+        self.execute(CREATE_TABLE)
 
 
     def delete_all(self):
