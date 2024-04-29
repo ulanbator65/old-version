@@ -64,6 +64,10 @@ class InstanceTable:
         self.sort_on_hashrate_per_dollar()
 #        self.snapshot_time = datetime.now()
 
+        for inst in self.instances:
+            if inst.miner:
+                inst.miner.normalize(inst.get_age_in_hours())
+
 
     def get_managed_instances(self) -> 'InstanceTable':
         iterator = filter(lambda x: x.is_managed, self.instances)

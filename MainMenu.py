@@ -11,6 +11,7 @@ from MinerGroup import MinerGroup
 from Menu import *
 from MinerStatisticsTable import MinerStatisticsTable
 from XuniMiner import XuniMiner
+from MinerCatcher import MinerCatcher
 from DbTest import DbTest
 import config
 
@@ -131,7 +132,10 @@ class MainMenu:
     def auto_menu_selection(self, choice):
 
         if choice == '1':
-            AutoMiner().start_mining()
+            AutoMiner(self.vast).start_mining()
+
+        if choice == '2':
+            MinerCatcher(self.vast).catch_miners()
 
 
     def reboot_instances(self):
@@ -142,7 +146,7 @@ class MainMenu:
     def get_auto_menu(self) -> Menu:
         menu_items = []
         menu_items.append("   1. Auto Miner")
-        menu_items.append("   2. -")
+        menu_items.append("   2. Catch cheap miners")
         menu_items.append("   Exit (x)")
         return Menu("Main Menu", menu_items, 50)
 

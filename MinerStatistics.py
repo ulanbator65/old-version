@@ -78,6 +78,7 @@ class MinerStatistics:
 
         self.duration_hours = 0.0
         self.block -= block_offset
+        self.xuni -= xuni_offset
 
 
     def normalize(self, total_duration):

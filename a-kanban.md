@@ -1,9 +1,9 @@
 
 Backlog
 ---------------
-In the Miner Group view, XenBlocks wallet history: change resolution from hours to minutes in the history table
-        A shorter resoltion will be more accurate as the cost per hour changes frequently and 
-        the calculation errors will be large if too old history values are used
+Miner grabber:
+        quickly grabs any cheap miner offer that shows up
+        only buys miners, nevers sells - purging have to be done manually
 
 In the Instance Table view: reset XUNI count also when block count is reset, but skip super.
 
@@ -23,11 +23,16 @@ Verification
 ---------------
 DB refactoring
 Auto reset
-Auto Miner
+
+Frequency to minutes from hours in XenBlocks history:
+In the Miner Group view, XenBlocks wallet history - change resolution from hours to minutes in the history table
+A shorter resoltion will be more accurate as the cost per hour changes frequently and
+the calculation errors will be large if too old history values are used
 
 
 Done
 ---------------
+Auto Miner
 
 
 
