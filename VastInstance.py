@@ -95,8 +95,6 @@ class VastInstance:
         self.miner = MinerStatistics.from_json(json, id, self.get_age_in_hours(), self.cost_per_hour)
         override_data = self.miner_repo.get(id)
         self.miner.override_data(override_data)
-        self.miner.normalize(self.get_age_in_hours())
-
 
 
     def hashrate_per_dollar(self) -> float:

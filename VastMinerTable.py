@@ -301,7 +301,7 @@ class VastMinerTable:
         ]
 
 
-    def get_rented_since(self, ins: VastInstance):
+    def get_rented_since1(self, ins: VastInstance) -> str:
         if not ins.start_date:
             return "N/A"
 
@@ -315,11 +315,26 @@ class VastMinerTable:
 #        return str(day) + "d " + str(hour) + "h " + str(min) + "m"
 
 
-    def is_high_performance_instance(self, inst: VastInstance):
+    def get_rented_since(self, ins: VastInstance) -> str:
+        if not ins.start_date:
+            return "N/A"
+
+        start_time: datetime = datetime.fromtimestamp(ins.start_date)
+        tdelta: timedelta = datetime.now() - start_time
+        time_parts: tuple = Time.time_parts(tdelta)
+        days = time_parts[0]
+        hours = time_parts[1]
+
+        return str(24*days + hours)
+
+#        return str(round(Time(ins.start_date).get_age_in_hours(0), 1))
+
+
+    def is_high_performance_instance(self, inst: VastInstance) -> bool:
         return inst.miner.block_cost() < 0.27
 
 
-    def get_difficulty(self):
+    def get_difficulty(self) -> int:
         if len(self.instances) == 0:
             return 0
 
