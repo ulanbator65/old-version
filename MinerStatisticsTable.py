@@ -77,8 +77,10 @@ class MinerStatisticsTable:
         for t in test[:4]:
             print("Hist: ", t)
 
-        timestamp_s = Time.now().subtract_hours(6).timestamp
+
+        timestamp_s = Time.now().subtract_hours(1).timestamp
         historic_value = self.select_snapshot_from_history(addr, int(timestamp_s))
+        print("Snapshot found: ", str(historic_value))
 
         if historic_value:
             dblock = wallet_snapshot.block - historic_value.block
@@ -113,7 +115,8 @@ class MinerStatisticsTable:
 
         if history:
             row = history[len(history) - 1]
-            return self.db.map_row(row)
+            snapshot = self.db.map_row(row)
+            return snapshot
         else:
             return None
 

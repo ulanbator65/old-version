@@ -52,7 +52,7 @@ class MinerStatistics:
 
     def reset_hours(self, total_hours: float):
         db = MinerStatisticsRepo()
-        hours_offset: float = round(total_hours, 1)
+        hours_offset: float = round(total_hours, 2)
 
         # If miner was restarted, all counters are reset to zero - just save the hours offset
 #        if self.block <= 0:
@@ -74,8 +74,12 @@ class MinerStatistics:
         block_offset += self.block
 #        xuni_offset += self.xuni
 
+        print("Before update", str(db.get(self.id)))
+
         # Save new offset
         db.update(self.id, hours_offset, block_offset)
+
+        print("After", str(db.get(self.id)))
 
         self.duration_hours = 0.0
         self.block -= block_offset

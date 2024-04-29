@@ -11,6 +11,7 @@ from MinerGroup import MinerGroup
 from Menu import *
 from MinerStatisticsTable import MinerStatisticsTable
 from XuniMiner import XuniMiner
+from DbTest import DbTest
 import config
 
 
@@ -44,6 +45,8 @@ class MainMenu:
         #        self.buy.buy_instance_menu()
         running = True
         main_menu: Menu = self.get_menu()
+
+        DbTest().run_test()
 
         if config.SHOW_MINER_GROUPS:
             self.miner_stat_table.print()

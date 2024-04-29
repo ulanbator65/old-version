@@ -6,13 +6,14 @@ from sqlite3 import Connection
 from DbManager import DbManager
 from config import DB_NAME
 
-INSERT = "INSERT INTO miner VALUES(?, ?, ?, ?)"
-UPDATE = "UPDATE miner SET hours=?, blocks=?, timestamp=? WHERE id=?"
-SELECT = "SELECT * FROM miner WHERE id = ?"
-DELETE = "DELETE FROM miner WHERE id=?"
+INSERT = "INSERT INTO test VALUES(?, ?, ?, ?)"
+UPDATE = "UPDATE test SET hours=?, blocks=?, timestamp=? WHERE id=?"
+SELECT = "SELECT * FROM test WHERE id = ?"
+DELETE = "DELETE FROM test WHERE id = ?"
+CREATE_TABLE = "CREATE TABLE IF NOT EXISTS test (id STRING PRIMARY KEY, hours NUMBER, blocks INTEGER, timestamp STRING)"
 
 
-class MinerStatisticsRepo:
+class DbTest:
 
     def __init__(self, db_man: DbManager = DbManager(DB_NAME)):
         self.db: DbManager = db_man
@@ -23,7 +24,16 @@ class MinerStatisticsRepo:
 
         with closing(self.__open()) as connection:
             self.__create_table()
-            self.connection.commit()
+#            self.connection.commit()
+
+
+    def run_test(self):
+
+        self.update(str(1111), 1, 1)
+
+        test = self.get(str(1111))
+        if int(test[0]) != 1111 or test[1] == 0:
+            raise Exception("Test failed: ", test)
 
 
     def create(self, id: str, hours: float, blocks: int):
@@ -33,11 +43,7 @@ class MinerStatisticsRepo:
 
 
     def update(self, id: str, hours: float, blocks: int):
-        # Note!!!  ID must be last in the tuple for the 'where' clause to work
         params: tuple = (hours, blocks, int(datetime.now().timestamp()), id)
-
-        if hours < 0.001:
-            raise Exception("WTF!!!")
 
         row = self.get(id)
         if not row:
@@ -62,8 +68,7 @@ class MinerStatisticsRepo:
 
 
     def __create_table(self):
-        sql = "CREATE TABLE IF NOT EXISTS miner (id STRING PRIMARY KEY, hours NUMBER, blocks INTEGER, timestamp STRING)"
-        self.execute(sql)
+        self._execute(CREATE_TABLE)
 
 
     def delete_all(self):
@@ -72,7 +77,7 @@ class MinerStatisticsRepo:
                 cursor.execute("DELETE FROM miner")
             self.connection.commit()
 
-    def execute(self, sql: str):
+    def _execute(self, sql: str):
         with closing(self.connection.cursor()) as cursor:
             cursor.execute(sql)
         self.connection.commit()
