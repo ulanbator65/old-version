@@ -35,6 +35,8 @@ class DbTest:
     def run_test(self):
         all2 = self.db.select_all(SELECT_ALL)
         print(all2)
+        if len(all2) > 1:
+            raise Exception("Test failed: ", all2)
 
         self.update(str(1111), 0, 0)
         self.update(str(1111), 1, 2)

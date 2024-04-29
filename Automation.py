@@ -67,6 +67,7 @@ class Automation:
             print("No offers found currently, try again later.")
 
 
+
     def increase_bid(self, instances: list, bid_factor=1.02):
         for inst in instances:
             self.increase_bid_for_instance(inst, bid_factor)
