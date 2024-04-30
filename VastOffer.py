@@ -9,6 +9,7 @@ class VastOffer:
         #        print(json)
         self.json: dict = json
         self.id: int = json.get('id')
+        self.gpu_name: str = json.get('gpu_name')
         self.dph_total: float = json.get('dph_total')
         self.min_bid: float = json.get('min_bid')
         self.flops_per_dphtotal: int = int(self.json.get('flops_per_dphtotal'))

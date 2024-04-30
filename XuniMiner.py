@@ -154,7 +154,7 @@ class XuniMiner:
         offers = offers1 + offers2
 
         if len(offers) == 0:
-            print(Field.attention(f"No offers below required flops per dph found: {dflop_min}"))
+            print(Field.attention(f"No offers above required flops per dph found: {dflop_min}"))
         else:
             for offer in offers:
                 #                        best_offer: VastOffer = offers
@@ -165,9 +165,6 @@ class XuniMiner:
                 if offer.flops_per_dphtotal > dflop_min:
                     print(Field.attention(f"Creating instance: {offer.id}"))
                     self.vast.create_instance(config.ADDR, offer.id, price)
-                else:
-                    print(Field.attention(f"No offers below required flops per dph found: {dflop_min}"))
-                    print(Field.attention(f"Best offer was: {offer.flops_per_dphtotal}"))
 
 
     def handle_startup(self, instances: list[VastInstance]):
@@ -226,7 +223,7 @@ class XuniMiner:
 
 
     def kill_unable_to_start_instances(self, instances: list[VastInstance]):
-        print_attention("Kill unable to start instances...")
+        print_attention("Kill instances unable to start...")
 
         for inst in instances:
 

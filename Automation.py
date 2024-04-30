@@ -54,7 +54,7 @@ class Automation:
             if best_offer.flops_per_dphtotal > A5000_dflops_premium:
                 self.vast.create_instance(config.ADDR, best_offer.id, price)
             else:
-                print(Field.attention(f"No offers below required flops per dph found: {A5000_dflops_premium}"))
+                print(Field.attention(f"No offers above required flops per dph found: {A5000_dflops_premium}"))
                 print(Field.attention(f"Best offer was: {best_offer.flops_per_dphtotal}"))
 
 
@@ -117,7 +117,7 @@ class Automation:
         query = VastQuery.gpu_model_query("RTX_A5000")
         query.max_result = 10
         query.max_bid = 0.99
-        query.tflop_price = dflop_min
+#        query.tflop_price = dflop_min
 
         return self.get_top_offers(query)
 

@@ -77,10 +77,7 @@ class VastAiCLI:
         if not isinstance(response, list):
             print("Error: Unexpected response format. Please ensure your command execution function is correct.")
 
-        response = list(map(lambda x: VastOffer(x), response))
-        iterator = filter(lambda x: query.filter_instance(x), response)
-
-        return list(iterator)
+        return list(map(lambda x: VastOffer(x), response))
 
 
     def run(self, command: list) -> dict:

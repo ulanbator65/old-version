@@ -45,3 +45,7 @@ class VastInstanceRules:
     @staticmethod
     def is_model_A5000(gpu_model: str):
         return "A5000" in gpu_model
+
+    @staticmethod
+    def needs_reboot(status: str, hash_per_usd: int, hpd_min: int = 15000):
+        return VastInstanceRules.is_running(status) and (hash_per_usd < hpd_min)

@@ -73,8 +73,8 @@ class BuyMenu:
 
 
     def select_top_offers(self, criterion: dict, gpu_model: dict, max_bid=0.7):
-        nr_gpus = 1
-        top_offers = self.search_top_offers(50, nr_gpus, max_bid, criterion=criterion, gpu_model=gpu_model)
+
+        top_offers = self.search_top_offers(50, max_bid, criterion=criterion, gpu_model=gpu_model)
 
         self.print_offer_table(top_offers)
         self.__select_and_purchase(top_offers)
@@ -145,13 +145,11 @@ class BuyMenu:
                 print(f"Invalid selection: {index}. Please try again.")
 
 
-    def search_top_offers(self, max_result: int, min_gpus: int, max_bid: float,
+    def search_top_offers(self, max_result: int, max_bid: float,
                           criterion='dph_total', gpu_model='') -> list[VastOffer]:
 
         query = VastQuery.gpu_model_query(gpu_model)
-        query.min_gpus = min_gpus
         query.max_bid = max_bid
-        query.tflop_price = 150.0
         query.verified = False
 
         offers_response = self.vast.get_offers(query)

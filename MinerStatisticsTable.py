@@ -138,7 +138,7 @@ class MinerStatisticsTable:
 
 
     def calculate_total_cost(self, address: str) -> float:
-        uptime_percentage = 0.07
+        uptime_percentage = 0.06
         instances: list[VastInstance] = self.get_instances_for_address(address)
         cost = 0.0
         for ins in instances:
