@@ -33,25 +33,40 @@ class MinerCatcher:
 
 
     def catch_miners(self):
+        dflops = 200
 
         while True:
-            self.catch_miners(500)
+            self.buy_miners(500)
 
             time.sleep(1*60)
-            VastMinerTable(self.get_vast_instances()).print_table()
+            instances = self.get_vast_instances()
+            if len(instances) > 0:
+                VastMinerTable().print_table()
 
             #            self.increase_bid()
             time.sleep(5*60)
 
 
 
-    def catch_miners(self, dflop_min):
 
-        offers: list[VastOffer] = self.automation.offers_A5000(dflop_min)
 
+    def buy_miners(self, dflop_min):
+        selected_models = ["RTX A2000", "RTX A4000", "RTX A5000"]
+        is_model = lambda x: x.gpu_name in selected_models
+
+        query = VastQuery.max_bid_query(0.99)  #.gpu_model_query("RTX_A5000")
+#        query = VastQuery.gpu_model_query("RTX_A5000")
+        query.verified = False
+        query.tflop_price = dflop_min
+
+        offers: list[VastOffer] = self.vast.get_offers(query) # automation.get_top_offers(query)
+        offers = list(filter(is_model, offers))
+        offers = self.automation.sort_offers('flops_per_dphtotal', offers)
+
+#        offers: list[VastOffer] = self.automation.offers_A5000(dflop_min)
 
         if len(offers) == 0:
-            print(Field.attention(f"No offers below required flops per dph found: {dflop_min}"))
+            print(Field.attention(f"No offers above required flops per dph found: {dflop_min}"))
         else:
             BuyMenu.print_offer_table(offers)
 
@@ -64,13 +79,9 @@ class MinerCatcher:
                 if offer.flops_per_dphtotal > dflop_min:
                     print(Field.attention(f"Creating instance: {offer.id}"))
                     self.vast.create_instance(config.ADDR, offer.id, price)
-                else:
-                    print(Field.attention(f"No offers below required flops per dph found: {dflop_min}"))
-                    print(Field.attention(f"Best offer was: {offer.flops_per_dphtotal}"))
 
 
     def increase_bid(self):
-        self.set_state("Increase Bid Price...")
 
         instances = self.get_vast_instances()
         outbid_instances = list(filter(lambda x: self.should_bid(x), instances))

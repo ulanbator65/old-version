@@ -52,9 +52,9 @@ class VastQuery:
             query_parts.append(f"gpu_name={self.gpu_model.replace(' ', '_')}")
 
         if self.tflop_price > 10.0:
-            pass
-#            query_parts.append(f"flops_usd>{self.tflop_price}")
-#           query_parts.append(f"flops_per_dphtotal>{self.tflop_price}")
+#            pass
+            query_parts.append(f"flops_usd>{self.tflop_price}")
+#            query_parts.append(f"flops_per_dphtotal>{200}")
 
         if self.verified:
             query_parts.append("verification=verified")

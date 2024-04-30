@@ -79,7 +79,7 @@ class MainMenu:
     def main_menu_selection(self, choice):
 
         if choice == AUTO:
-            self.automation.runBot()
+            self.auto_menu()
             # result = ShellCommand().run("ssh -p 19267 root@210.239.9.203 -L 8080:localhost:8080")
 #           result = ShellCommand().run(["ssh", "-p", "19267", "root@210.239.9.203", "-L", "8080:localhost:8080"])
 #            print(result)

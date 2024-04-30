@@ -44,7 +44,7 @@ class AutoMiner:
         offers: list[VastOffer] = self.automation.offers_A40(dflop_min)
 
         if len(offers) == 0:
-            print(Field.attention(f"No offers below required flops per dph found: {dflop_min}"))
+            print(Field.attention(f"No offers above required flops per dph found: {dflop_min}"))
         else:
             for offer in offers:
                 #                        best_offer: VastOffer = offers
@@ -56,7 +56,7 @@ class AutoMiner:
                     print(Field.attention(f"Creating instance: {offer.id}"))
                     self.vast.create_instance(config.ADDR, offer.id, price)
                 else:
-                    print(Field.attention(f"No offers below required flops per dph found: {dflop_min}"))
+                    print(Field.attention(f"No offers above required flops per dph found: {dflop_min}"))
                     print(Field.attention(f"Best offer was: {offer.flops_per_dphtotal}"))
 
 

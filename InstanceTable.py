@@ -57,6 +57,8 @@ class InstanceTable:
             self.instances = self.get_manual_instances()
 #        self.instances = self.vast.get_instances()
         self.load_miner_stats()
+        self.housekeeping()
+
 
 
     def load_miner_stats(self):
@@ -68,6 +70,12 @@ class InstanceTable:
             if inst.miner:
                 inst.miner.normalize(inst.get_age_in_hours())
 
+    def housekeeping(self):
+        for inst in self.instances:
+            if inst.needs_reboot():
+#                self.vast.reboot_instance(inst.id)
+                print(f"Rebooting id={inst.id} due to: Low hashrate per USD!")
+                print(f"Hashrate: {inst.hashrate_per_dollar()}")
 
     def get_managed_instances(self) -> 'InstanceTable':
         iterator = filter(lambda x: x.is_managed, self.instances)

@@ -75,6 +75,9 @@ class VastInstance:
 #        print(type(id))
         return self.id == id
 
+    def needs_reboot(self):
+        return VastInstanceRules.needs_reboot(self.actual_status, self.hashrate_per_dollar())
+
     def get_miner_url(self) -> str:
         if not self.get_host():
             return None
@@ -97,8 +100,9 @@ class VastInstance:
         self.miner.override_data(override_data)
 
 
-    def hashrate_per_dollar(self) -> float:
-        return self.miner.hashrate_per_dollar() if self.miner else 0.0
+    def hashrate_per_dollar(self) -> int:
+        return int(self.miner.hashrate_per_dollar()) if self.miner else 0
+
 
     def block_cost(self) -> float:
         return self.miner.block_cost if self.miner else 0.0
