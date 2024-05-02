@@ -1,11 +1,11 @@
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from Time import Time
 from tostring import auto_str
 from config import VAST_IMAGE, WHITELIST, MANUAL_MODE
 
 from MinerStatistics import MinerStatistics
-from MinerStatisticsRepo import MinerStatisticsRepo
+from db.MinerStatisticsRepo import MinerStatisticsRepo
 from VastInstanceRules import *
 
 
@@ -49,7 +49,7 @@ class VastInstance:
 
 
     def reset_hours(self):
-        offset_hours = self.get_age_in_hours()   # self.miner.hours
+        offset_hours = self.get_age_in_hours()
         self.miner.reset_hours(offset_hours)
 
 

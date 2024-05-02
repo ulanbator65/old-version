@@ -9,7 +9,7 @@ ONE_MINUTE = 60
 xenblocks = XenBlocks()
 
 
-def get_wallet_snapshot(addr: str) -> XenBlocksWallet:
+def get_wallet_balance(addr: str) -> XenBlocksWallet:
     cache = __get_cache()
     if len(cache) == 0:
         return None
@@ -18,7 +18,7 @@ def get_wallet_snapshot(addr: str) -> XenBlocksWallet:
     return _get_first(iterator)
 
 
-def get_miner_stats_for_rank(rank: int) -> XenBlocksWallet:
+def get_balance_for_rank(rank: int) -> XenBlocksWallet:
     cache = __get_cache()
     if len(cache) == 0:
         return None
@@ -27,7 +27,7 @@ def get_miner_stats_for_rank(rank: int) -> XenBlocksWallet:
     return _get_first(iterator)
 
 
-def get_miner_stats() -> list[XenBlocksWallet]:
+def get_all_balances() -> list[XenBlocksWallet]:
     __get_cache.cache_clear()
     return __get_cache()
 
@@ -40,4 +40,4 @@ def __get_cache() -> list[XenBlocksWallet]:
 
 # Cache objects are mutable so return a copy
 def _get_first(iterator) -> XenBlocksWallet:
-    return list(iterator)[0].clone()
+    return list(iterator)[0]

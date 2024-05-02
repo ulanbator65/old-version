@@ -44,7 +44,7 @@ class VastAiCLI:
         print(result)
         return result
 
-    def change_bid(self, instance_id, price):
+    def change_bid(self, instance_id, price) -> dict:
         command = [
             "vastai", "change", "bid", str(instance_id),
             "--price", str(price),
@@ -56,14 +56,14 @@ class VastAiCLI:
         return result
 
 
-    def reboot(self, instance_id):
+    def reboot(self, instance_id) -> dict:
         command = ["vastai", "reboot", "instance", str(instance_id), "--api-key", self.api_key]
         result = self.run(command)
         print(result)
         return result
 
 
-    def delete(self, instance_id):
+    def delete(self, instance_id) -> dict:
         command = ["vastai", "destroy", "instance", str(instance_id), "--api-key", self.api_key]
         result = self.run(command)
         print(result)
@@ -71,13 +71,26 @@ class VastAiCLI:
 
 
     def get_offers(self, query: VastQuery) -> list[VastOffer]:
-        command = ["vastai", "search", "offers", query.get_query(), "--type", "bid", "--raw"]
+
+        try:
+            command = ["vastai", "search", "offers", query.get_query(), "--type", "bid", "--raw"]
+            response = self.run(command)
+
+            if not isinstance(response, list):
+                print("Error: Unexpected response format. Please ensure your command execution function is correct.")
+
+            return list(map(lambda x: VastOffer(x), response))
+
+        except Exception as e:
+            print(f"Error: Exception!!! {e}")
+            return []
+
+
+    def get_billing(self) -> str:
+        command = ["vastai", "show", "invoices", "--api-key", self.api_key]
         response = self.run(command)
 
-        if not isinstance(response, list):
-            print("Error: Unexpected response format. Please ensure your command execution function is correct.")
-
-        return list(map(lambda x: VastOffer(x), response))
+        return response.get('stdout')
 
 
     def run(self, command: list) -> dict:
@@ -100,7 +113,7 @@ class VastAiCLI:
                 return {"success": False, "error": "Loading...", "stdout": response.stdout.strip()}
 
 
-    def __execute_command(self, cmd: list):
+    def __execute_command(self, cmd: list) -> subprocess.CompletedProcess:
         try:
             return subprocess.run(cmd, capture_output=True, text=True, check=True)
 

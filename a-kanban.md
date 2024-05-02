@@ -1,6 +1,10 @@
 
 Backlog
 ---------------
+Getting a lot of errors when fetching miner data in Xuni Miner
+
+Calculate cost for each leg in XenBlocks history using saved cost per hour
+
 In the Instance Table view: reset XUNI count also when block count is reset, but skip super.
 
 In the Miner Group view: include historic values for cost per hour in the cost calculation

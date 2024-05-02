@@ -1,8 +1,14 @@
 
 from prettytable.colortable import Theme
 
+
 def fg_color(code: int):
     return FG + str(code) + 'm'
+
+
+def bg_color(code: int):
+    return BG + str(code) + 'm'
+
 
 CH_EXIT = 'X'
 CH_K = 'K'
@@ -16,6 +22,7 @@ RESET = PRE + '0m'   # Reset color
 BLINK = '\033[5m'
 
 GRAY = PRE + '90m'
+DARK_GRAY = PRE + '91m' #PRE  + '235m'
 
 RED = PRE + '91m'
 YELLOW = PRE + '93m'
@@ -57,6 +64,8 @@ C_OK = GREEN2
 
 BG_GRAY = BG + '235m'
 BG_BLACK = BG + '232m'
+BG_ORANGE = bg_color(29)
+
 
 C_THEME1 = LIGHT_PINK
 C_THEME2 = GRAY2

@@ -1,35 +1,30 @@
 
-from contextlib import closing
 from sqlite3 import Connection
 
 from XenBlocksWallet import XenBlocksWallet
-from DbManager import DbManager
+from db.DbManager import DbManager
 from config import DB_NAME
 from Field import Field
 from constants import *
 
 CREATE_TABLE = "CREATE TABLE IF NOT EXISTS miner_history (id STRING, timestamp INTEGER, block INTEGER, xuni INTEGER, sup INTEGER, cost NUMBER)"
 SELECT = "SELECT * FROM miner_history WHERE id = ? ORDER BY timestamp DESC;"
-SELECT_FROM_TIMESTAMP = "SELECT * FROM miner_history WHERE id = ? and timestamp < ? ORDER BY timestamp DESC;"
+SELECT_FROM_TIMESTAMP = "SELECT * FROM miner_history WHERE id = ? and timestamp > ? ORDER BY timestamp DESC;"
 INSERT = "INSERT INTO miner_history VALUES(?, ?, ?, ?, ?, ?)"
-#UPDATE = "UPDATE miner_history SET timestamp=?, blocks=?, timestamp=? WHERE id=?"
 DELETE = "DELETE FROM miner_history WHERE id=?"
 DELETE_ALL = "DELETE FROM miner_history"
 
 error = Field(RED)
+
+#"ALTER TABLE miner_history ADD new_column_name column_definition;"
 
 
 class XenBlocksWalletHistoryRepo:
     def __init__(self, db_man: DbManager = DbManager(DB_NAME)):
         self.db: DbManager = db_man
         self.connection: Connection = None
-#        print(json)
-#        self.db = "database.db"
-#        self.db = sqlite3.connect("database.db")
 
-        with closing(self.__open()) as connection:
-            self.__create_table()
-            self.connection.commit()
+        self.db.execute(CREATE_TABLE)
 
 
     def get_nr_of_rows(self, addr: str):
@@ -42,25 +37,35 @@ class XenBlocksWalletHistoryRepo:
            raise Exception("WTF!!!")
 
         params: tuple = (snapshot.addr, snapshot.timestamp_s, snapshot.block, snapshot.sup, snapshot.xuni, snapshot.cost_per_hour)
-        if snapshot.sup == 0 and snapshot.block > 1100:
+
+        if snapshot.sup == 0 and snapshot.block > 1600:
             # A bug in XenBlocks endpoint where super count is sometimes returned as zero
             # Ignore faulty data
-            print(error.format("Super count with '0' detected. Will not save to database!!!"))
-            print(str(params))
-#            raise Exception("WTF2!!!")
-        else:
-            self.db.insert(INSERT, params)
+#            print(error.format("Super count with '0' detected. Will not save to database!!!"))
+#            print(str(params))
+            previous = self.get_latest_version(snapshot.addr)
 
-#        with closing(self.__open()) as connection:
-#            self.__insert(id, timestamp, stats.block, stats.super, stats.xuni, stats.cost_per_hour)
-#            self.connection.commit()
+            params = (snapshot.addr, snapshot.timestamp_s, snapshot.block, previous.sup, snapshot.xuni, snapshot.cost_per_hour)
+
+        self.db.insert(INSERT, params)
 
 
     def get_for_timestamp(self, addr: str, timestamp: int) -> XenBlocksWallet:
+        result = self.get_history(addr, timestamp)
+
+        return result[0] if len(result) > 0 else None
+
+
+    def get_history(self, addr: str, timestamp: int) -> list[XenBlocksWallet]:
         params: tuple = (addr, timestamp)
         result = self.db.select(SELECT_FROM_TIMESTAMP, params)
 
-        return self.map_row(result[0]) if len(result) > 0 else None
+        history: list[XenBlocksWallet] = []
+
+        for x in result:
+            history.append(self.map_row(x))
+
+        return history
 
 
     def get_latest_version(self, id: str) -> XenBlocksWallet:
@@ -74,10 +79,6 @@ class XenBlocksWalletHistoryRepo:
         result = self.db.select(SELECT, params)
         return result[0:max_count] if len(result) >= max_count else result
 
-#        with closing(self.__open()) as connection:
-#            result = connection.cursor().execute(SELECT, (id,)).fetchall()
-#            return result[0:max_count] if len(result) >= max_count else result
-
 
     def map_row(self, row: tuple) -> XenBlocksWallet:
         addr: str = row[0]
@@ -89,25 +90,9 @@ class XenBlocksWalletHistoryRepo:
         return XenBlocksWallet(addr, 0, block, sup, xuni, timestamp_s, cost)
 
 
-    def __create_table(self):
-        self.execute(CREATE_TABLE)
-
     def __delete(self, id: str):
-        with closing(self.connection.cursor()) as cursor:
-            cursor.execute(DELETE, id)
+        self.db.delete(DELETE, (id,))
 
     def delete_all(self):
-        with closing(self.__open()) as connection:
-            with closing(self.connection.cursor()) as cursor:
-                cursor.execute(DELETE_ALL)
-            self.connection.commit()
-
-    def execute(self, sql: str):
-        with closing(self.connection.cursor()) as cursor:
-            cursor.execute(sql)
-        self.connection.commit()
-
-    def __open(self):
-        self.connection = self.db.open()
-        return self.connection
+        self.db.execute(DELETE_ALL)
 

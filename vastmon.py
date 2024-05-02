@@ -1,15 +1,14 @@
 # External modules
-from tabulate import tabulate
 from dotenv import load_dotenv
 import logging
 
 # My modules
-from DbManager import DbManager
+from db.DbManager import DbManager
 #from VastClient import *
 from VastAiCLI import VastAiCLI
-from BuyMenu import BuyMenu
-from MainMenu import MainMenu
-from TerminateMenu import *
+from views.BuyMenu import BuyMenu
+from views.MainMenu import MainMenu
+from views.TerminateMenu import *
 import app_config as app
 import config as config
 from constants import *

@@ -1,6 +1,6 @@
 
 from tostring import *
-from MinerStatisticsRepo import *
+from db.MinerStatisticsRepo import *
 from constants import *
 from Time import Time
 from MinerRules import *
@@ -84,8 +84,8 @@ class MinerStatistics:
     def normalize(self, total_duration):
         # Auto reset in the case the miner was restarted
         if MinerRules.should_reset_hours(self.block, self.xuni):
-#            self.block = 0
             self.reset_hours(total_duration)
+            pass
 
 
     #
@@ -95,7 +95,7 @@ class MinerStatistics:
         if not data or len(data) < 3:
             return
 
-        print("Over: ", data)
+#        print("Over: ", data)
 
         # If the managed instance was rebooted thereby resetting miner data -
         # offset block count and hours as a workaround
@@ -128,6 +128,9 @@ class MinerStatistics:
         return self.cost_per_hour / self.block_rate()
 
     def blocks_per_day(self, default: float = 0.6) -> float:
+        return 24*self.block_rate(default)
+
+    def blocks_per_(self, default: float = 0.6) -> float:
         return 24*self.block_rate(default)
 
     def calculate_performance(self, age_hours: float, count: int, default: float = 0.6) -> float:

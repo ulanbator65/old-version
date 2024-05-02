@@ -1,21 +1,17 @@
-
 import ui
-from VastClient import VastClient
-from InstanceTable import InstanceTable
-from TerminateMenu import TerminateMenu
 from Automation import *
-import config
 
-BORDER_WIDTH = 4*10
+BORDER_WIDTH = 4*20
 
 
 class Menu:
-    def __init__(self, header: str, items: list, width: int, col_header=LIGHT_CYAN, col_row=GOLD):
+    def __init__(self, header: str, items: list, width: int, col_header=LIGHT_CYAN, col_row=GOLD, col_bg=BG_GRAY):
         self.header: str = header
         self.items: list[str] = items
         self.inner_width = width
         self.color1 = col_header
         self.col_row = col_row
+        self.col_bg = col_bg
 
 
     def select(self):
@@ -37,8 +33,8 @@ class Menu:
 
 
     def print(self):
-        f1 = Field(self.color1 + BG_GRAY)
-        f = Field(self.col_row + BG_GRAY)
+        f1 = Field(self.color1 + self.col_bg)
+        f = Field(self.col_row + self.col_bg)
 
         print()
         self.print_item(f, " ")

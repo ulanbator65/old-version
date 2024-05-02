@@ -196,7 +196,7 @@ class VastMinerTable:
             override,
             str(ins.miner.hashrate),
             f"{ins.miner.hashrate_per_dollar():.0f}",
-            str(round(ins.miner.duration_hours, 1)),
+            str(round(ins.miner.duration_hours, 2)),
             # 10
             str(round(ins.miner.block_rate(), 2)),
             f"${ins.miner.block_cost():.3f}",
@@ -258,7 +258,8 @@ class VastMinerTable:
             "-",
             "-",
             "-",
-            str(round(inst.get_age_in_hours(), 1)),
+            "-",
+#            str(round(inst.get_age_in_hours(), 1)),
             "-",
             "-",
             "-",  # 7
@@ -350,7 +351,7 @@ class VastMinerTable:
             # Miner not started!
             # Reboot!!!
 #            raise Exception("Instance needs Reboot!!! Miner is not started")
-            return C_HIGH_ALERT
+            return C_ATTENTION_BLINK
 
         elif ins.actual_status != "running":
             # Instance has stopped - do something!

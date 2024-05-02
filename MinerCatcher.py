@@ -2,13 +2,11 @@
 import time
 
 from Automation import Automation
-from VastInstance import *
 from VastClient import *
 from VastOffer import VastOffer
 import config
 from Field import *
-from Menu import Menu
-from BuyMenu import BuyMenu
+from views.BuyMenu import BuyMenu
 from VastMinerTable import VastMinerTable
 
 

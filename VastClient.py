@@ -9,6 +9,8 @@ from VastQuery import VastQuery
 from VastInstance import VastInstance
 from VastOffer import VastOffer
 from XenBlocks import *
+from Billing import Billing
+import MinerDataCache as MinerCache
 from Field import Field
 from constants import *
 from tostring import auto_str
@@ -17,6 +19,8 @@ import config
 INSTANCE_URL = "https://console.vast.ai/api/v0/instances"
 
 f = Field(ORANGE)
+fgray = Field(GRAY)
+
 
 @auto_str
 class VastClient:
@@ -61,8 +65,18 @@ class VastClient:
         cmd.change_bid(instance_id, new_price)
 
 
+    def get_vast_balance(self) -> float:
+        billing_data: str = VastAiCLI(self.api_key).get_billing()
+
+        if not billing_data:
+            print(f.format(f"Failed to get billing!!"))
+            return None
+
+        return Billing.parse_balance(billing_data)
+
+
     def reboot_instance(self, instance_id):
-        print(f"Attempting to reboot instance {instance_id}...")
+        log_info(f"Attempting to reboot instance {instance_id}...")
         result = VastAiCLI(self.api_key).reboot(instance_id)
 
         if result:
@@ -73,7 +87,7 @@ class VastClient:
 
 
     def kill_instance(self, instance_id):
-        print(f"Attempting to terminate instance {instance_id}...")
+        log_info(f"Attempting to terminate instance {instance_id}...")
         result = VastAiCLI(self.api_key).delete(instance_id)
 
         if result:
@@ -129,9 +143,39 @@ class VastClient:
             return
 
         # No connection to Miner
-        if not inst.is_managed or not inst.get_miner_url():
+        if not inst.is_running() or not inst.is_managed or not inst.get_miner_url():
             logging.info(f"Miner stats skipped for instance {inst.id} due to unavailable external port.")
 #            inst.miner_status = "offline"
+            return
+
+        # Get Miner data
+        try:
+            json = MinerCache.get_miner_statistics(inst.id, inst.get_miner_url())
+            if json:
+                inst.add_statistics(inst.id, json)
+                inst.miner_status = "online"
+            else:
+                inst.miner_status = "offline"
+                # Do not reset statistics at this time, it could be interpreted as a dead miner instance
+#                inst.reset_statistics()
+
+        except Exception as e:
+            inst.miner_status = "offline"
+#            inst.miner = None
+#            traceback.print_exc()
+            logging.error(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.id}: {e}")
+
+
+    def get_miner_statistics1(self, inst: VastInstance, stats):
+        # Instance stopped
+        if not inst.is_running():
+            #            inst.miner_status = "offline"
+            return
+
+        # No connection to Miner
+        if not inst.is_managed or not inst.get_miner_url():
+            logging.info(f"Miner stats skipped for instance {inst.id} due to unavailable external port.")
+            #            inst.miner_status = "offline"
             return
 
         # Get Miner data
@@ -147,10 +191,9 @@ class VastClient:
 
         except Exception as e:
             inst.miner_status = "offline"
-#            inst.miner = None
+            #            inst.miner = None
             traceback.print_exc()
             logging.error(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.id}: {e}")
-
 
 
     def is_blacklisted(self, instance) -> bool:
@@ -160,3 +203,10 @@ class VastClient:
 
         return False
 
+
+def log_info(info):
+    print(fgray.format(info))
+
+
+def log_attention(info):
+    print(f.format(info))

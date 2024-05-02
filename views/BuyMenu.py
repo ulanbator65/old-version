@@ -1,10 +1,11 @@
 
 from VastClient import VastClient
 from VastOffer import VastOffer
-from Automation import *
 from prettytable.colortable import *
+from Menu import Menu as Menu
+from Automation import Automation
+import config
 from constants import *
-from Menu import *
 from ui import text_color
 
 
