@@ -14,11 +14,21 @@ def run_all():
 
 
 def test_xenblocks_cache():
-    cache: list = XenBlocksCache.get_all_balances()
-    if len(cache) < 5:
-        raise Exception("Expected cache size to be grater than: 5")
-    for c in cache:
-        print(c)
+    addr = "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA"
+    wallet = XenBlocksCache.get_wallet_balance(addr)
+    if not wallet:
+        raise Exception("Wallet not found!")
+
+    if wallet.block < 1100:
+        raise Exception("Wrong Wallet balance!")
+
+    if wallet.addr != addr.lower():
+        raise Exception("Wrong Wallet address!")
+
+    wallet = XenBlocksCache.get_balance_for_rank(200)
+    if wallet.rank != 200:
+        raise Exception("Wrong rank: " + str(wallet.rank))
+
 
 
 def test_db():
