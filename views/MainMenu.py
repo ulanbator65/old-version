@@ -1,18 +1,12 @@
-
-import ui
-from VastClient import VastClient
-from InstanceTable import InstanceTable
-from TerminateMenu import TerminateMenu
-from Automation import *
 from AutoMiner import AutoMiner
-from BuyMenu import BuyMenu
-from MinerStatisticsTable import MinerStatisticsTable
-from MinerGroup import MinerGroup
+from views.BuyMenu import BuyMenu
+from views.TerminateMenu import TerminateMenu
 from Menu import *
 from MinerStatisticsTable import MinerStatisticsTable
 from XuniMiner import XuniMiner
 from MinerCatcher import MinerCatcher
-from DbTest import DbTest
+from InstanceTable import InstanceTable
+from integrationtest import integration_tests
 import config
 
 
@@ -23,6 +17,7 @@ BUY_INSTANCE = '3'
 REBOOT = '4'
 REFRESH_MINER_STATS = '5'
 INCREASE_BID = '6'
+XUNI_MINER = '9'
 M_RESET = '7'
 M_EXIT = 'x'
 PURGE_INSTANCES = '44'
@@ -36,21 +31,21 @@ class MainMenu:
         self.terminate = terminate
         self.automation = Automation(vast)
         self.table = InstanceTable()
-        self.miner_stat_table = MinerStatisticsTable(self.vast)
+        self.miner_group_table = MinerStatisticsTable(self.vast)
     #    print(vast)
 
 
     def start(self):
-#        self.buy.auto_buy()
-        self.main_menu_selection(VIEW_INSTANCE)
-        #        self.buy.buy_instance_menu()
+#        self.main_menu_selection(VIEW_INSTANCE)
+
         running = True
         main_menu: Menu = self.get_menu()
 
-        DbTest().run_test()
+        integration_tests.run_all()
+
 
         if config.SHOW_MINER_GROUPS:
-            self.miner_stat_table.print()
+            self.miner_group_table.print()
 
         if config.RUN_XUNI_MINER:
             XuniMiner(self.vast).mine_xuni()
@@ -71,7 +66,7 @@ class MainMenu:
         menu_items.append("   6. Increase bid")
         menu_items.append("   7. Reset hours")
         menu_items.append("   ")
-        menu_items.append("   9. Reboot")
+        menu_items.append("   9. XUNI Miner")
         menu_items.append("   Exit (x)")
         return Menu("Main Menu", menu_items, 50)
 
@@ -106,12 +101,15 @@ class MainMenu:
             self.terminate.purge_dead_instances(self.table)
 
         elif choice == INCREASE_BID:
-            pass
-#            self.automation.increase_bid(self.table.instances)
+#            pass
+            self.automation.increase_bid(self.table.instances)
 
         elif choice == M_RESET:
             self.table.reset_hours()
             self.main_menu_selection(VIEW_INSTANCE)
+
+        elif choice == XUNI_MINER:
+            XuniMiner(self.vast).mine_xuni()
 
         elif choice == M_EXIT or choice == CH_EXIT:
             print("Exiting...")

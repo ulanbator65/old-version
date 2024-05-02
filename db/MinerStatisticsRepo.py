@@ -1,9 +1,8 @@
 
-from contextlib import closing
 from datetime import datetime
 from sqlite3 import Connection
 
-from DbManager import DbManager
+from db.DbManager import DbManager
 from config import DB_NAME
 
 INSERT = "INSERT INTO miner VALUES(?, ?, ?, ?, ?)"
@@ -18,13 +17,8 @@ class MinerStatisticsRepo:
     def __init__(self, db_man: DbManager = DbManager(DB_NAME)):
         self.db: DbManager = db_man
         self.connection: Connection = None
-#        print(json)
-#        self.db = "database.db"
-#        self.db = sqlite3.connect("database.db")
 
-        with closing(self.__open()) as connection:
-            self.__create_table()
-            self.connection.commit()
+        self.db.execute(CREATE_TABLE)
 
 
     def create(self, id: str, hours: float, blocks: int):
@@ -57,27 +51,7 @@ class MinerStatisticsRepo:
 
         return result[0] if len(result) > 0 else None
 
-#        with closing(self.__open()) as connection:
-#            result = connection.cursor().execute("SELECT * FROM miner WHERE id = ?", (id,)).fetchall()
-#            return result[0] if len(result) > 0 else None
-
-
-    def __create_table(self):
-        self.execute(CREATE_TABLE)
-
 
     def delete_all(self):
-        with closing(self.__open()) as connection:
-            with closing(self.connection.cursor()) as cursor:
-                cursor.execute("DELETE FROM miner")
-            self.connection.commit()
-
-    def execute(self, sql: str):
-        with closing(self.connection.cursor()) as cursor:
-            cursor.execute(sql)
-        self.connection.commit()
-
-    def __open(self):
-        self.connection = self.db.open()
-        return self.connection
+        self.db.execute("DELETE FROM miner")
 

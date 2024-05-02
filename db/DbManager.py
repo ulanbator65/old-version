@@ -25,15 +25,25 @@ class DbManager:
                 .execute(sql).fetchall()
 
     def insert(self, prepared_statement: str, params: tuple):
-        print("insert2: ", params)
         with closing(self._open()) as connection:
             connection.cursor().execute(prepared_statement, params)
             connection.commit()
 
     def update(self, prepared_statement: str, params: tuple):
-        print("update2: ", params)
         with closing(self._open()) as connection:
             connection.cursor().execute(prepared_statement, params)
+            connection.commit()
+
+
+    def delete(self, prepared_statement: str, params: tuple):
+        with closing(self._open()) as connection:
+            connection.cursor().execute(prepared_statement, params)
+            connection.commit()
+
+
+    def execute(self, sql: str):
+        with closing(self._open()) as connection:
+            connection.cursor().execute(sql)
             connection.commit()
 
     def _open(self):

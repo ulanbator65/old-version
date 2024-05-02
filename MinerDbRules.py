@@ -1,6 +1,4 @@
-
-from MinerStatistics import MinerStatistics
-from XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
+from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
 
 
 class MinerDbRules:
