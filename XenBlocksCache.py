@@ -14,8 +14,9 @@ def get_wallet_balance(addr: str) -> XenBlocksWallet:
     if len(cache) == 0:
         return None
 
-    iterator = filter(lambda x: x.addr.lower() == addr.lower(), cache)
-    return _get_first(iterator)
+    iterator = filter(lambda x: addr.lower() in x, cache)
+    row = _get_first_row(iterator)
+    return xenblocks.map_row(row)
 
 
 def get_balance_for_rank(rank: int) -> XenBlocksWallet:
@@ -23,21 +24,14 @@ def get_balance_for_rank(rank: int) -> XenBlocksWallet:
     if len(cache) == 0:
         return None
 
-    iterator = filter(lambda x: x.rank == rank, cache)
-    return _get_first(iterator)
-
-
-def get_all_balances() -> list[XenBlocksWallet]:
-    __get_cache.cache_clear()
-    return __get_cache()
+    return xenblocks.map_row(cache[rank-1])
 
 
 @cached(cache=TTLCache(maxsize=3, ttl=ONE_MINUTE))
-def __get_cache() -> list[XenBlocksWallet]:
+def __get_cache() -> list[str]:
     print("XenBlocksCache loaded...")
     return xenblocks.get_miner_stats()
 
 
-# Cache objects are mutable so return a copy
-def _get_first(iterator) -> XenBlocksWallet:
+def _get_first_row(iterator) -> str:
     return list(iterator)[0]

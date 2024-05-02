@@ -43,7 +43,7 @@ class XenBlocks:
             logging.error(f"Error fetching instances: {e}")
 
 
-    def get_miner_stats(self) -> list[XenBlocksWallet]:
+    def get_miner_stats(self) -> list[str]:
         stats_table: list = []
         text = self._get_leaderboard()
 #        print(text[1100:1800])
@@ -56,12 +56,22 @@ class XenBlocks:
         rows: list = get_elements("<tr>", "</tr>", tbody[0])
 
         for row in rows:
-            fields: list = get_elements("<td>", "</td>", row)
-            if len(fields) > 3:
-                stat: XenBlocksWallet = map_fields(fields)
-                stats_table.append(stat)
+            stats_table.append(row)
+
+#            fields: list = get_elements("<td>", "</td>", row)
+#            if len(fields) > 3:
+#                stat: XenBlocksWallet = map_fields(fields)
+#                stats_table.append(stat)
 
         return stats_table
+
+
+    def map_row(self, row: str) -> XenBlocksWallet:
+        fields: list = get_elements("<td>", "</td>", row)
+        if len(fields) < 4:
+            return None
+
+        return map_fields(fields)
 
 
 def map_fields(fields: list) -> XenBlocksWallet:
