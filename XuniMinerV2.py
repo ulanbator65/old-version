@@ -8,6 +8,7 @@ from VastOffer import VastOffer
 import config
 from Field import *
 from Menu import Menu
+from statemachine.StateMachine import State, StateMachine
 from VastMinerTable import VastMinerTable
 from MinerStatisticsTable import MinerStatisticsTable
 from Controller import Controller
@@ -29,7 +30,7 @@ S_KEEP_MINING = "Just keep mining..."
 
 
 
-class XuniMiner:
+class XuniMinerV2:
 
     def __init__(self, vast):
         self.controller = Controller(vast)
@@ -45,6 +46,23 @@ class XuniMiner:
         self.checkpoint2: datetime = None
         self.mining_end = None
         self.reset()
+        self.dflop_min = 215
+
+        self.s1 = State(S_START_MINING,
+                        [f"DFLOP min: {self.dflop_min}",
+                         f"GPU models: A40, A5000",
+                         "",
+                         "Mining Start: " + str(self.mining_start)[11:19],
+                         "Mining End:   " + str(self.mining_end)[11:19]],
+                        self.state_startup_miners)
+
+
+        #        self.s2 = State(S_DONE, self.state_completed)
+        self.sm = StateMachine([self.s1])
+
+
+    def get_state_machine(self):
+        return self.sm
 
 
     def reset(self):
@@ -63,11 +81,12 @@ class XuniMiner:
         stats_history = MinerStatisticsTable(self.vast)
         dflop_min = 240
 
-        self.set_state(S_START_MINING, [f"DFLOP min: {dflop_min}",
-                                        f"GPU models: A40, A5000",
-                                        "",
-                                        "Mining Start: " + str(self.mining_start)[11:19],
-                                        "Mining End:   " + str(self.mining_end)[11:19]])
+        self.set_state(S_START_MINING,
+                       [f"DFLOP min: {dflop_min}",
+                        f"GPU models: A40, A5000",
+                        "",
+                        "Mining Start: " + str(self.mining_start)[11:19],
+                        "Mining End:   " + str(self.mining_end)[11:19]])
 
         self.xuni_miners = [10754563, 10754564, 10754566]
 

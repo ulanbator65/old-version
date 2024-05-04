@@ -34,7 +34,7 @@ class VastQuery:
     @staticmethod
     def max_bid_query(max_bid: float):
         q = VastQuery(0)
-        q.max_bid = max_bid
+        q.max_bid = round(max_bid, 3)
         return q
 
 

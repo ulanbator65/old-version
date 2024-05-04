@@ -6,8 +6,9 @@ from MinerStatisticsTable import MinerStatisticsTable
 from XuniMiner import XuniMiner
 from MinerCatcher import MinerCatcher
 from InstanceTable import InstanceTable
-from integrationtest import integration_tests
+from VastInstanceRules import VastInstanceRules
 import config
+import time
 
 
 AUTO = '0'
@@ -17,8 +18,9 @@ BUY_INSTANCE = '3'
 REBOOT = '4'
 REFRESH_MINER_STATS = '5'
 INCREASE_BID = '6'
-XUNI_MINER = '9'
 M_RESET = '7'
+SHUTDOWN_NEXT_BLOCK = '8'
+XUNI_MINER = '9'
 M_EXIT = 'x'
 PURGE_INSTANCES = '44'
 
@@ -40,9 +42,6 @@ class MainMenu:
 
         running = True
         main_menu: Menu = self.get_menu()
-
-        integration_tests.run_all()
-
 
         if config.SHOW_MINER_GROUPS:
             self.miner_group_table.print()
@@ -66,6 +65,7 @@ class MainMenu:
         menu_items.append("   6. Increase bid")
         menu_items.append("   7. Reset hours")
         menu_items.append("   ")
+        menu_items.append("   8. Shutdown when next block is mined")
         menu_items.append("   9. XUNI Miner")
         menu_items.append("   Exit (x)")
         return Menu("Main Menu", menu_items, 50)
@@ -108,6 +108,9 @@ class MainMenu:
             self.table.reset_hours()
             self.main_menu_selection(VIEW_INSTANCE)
 
+        elif choice == SHUTDOWN_NEXT_BLOCK:
+            self.shutdown_next_block()
+
         elif choice == XUNI_MINER:
             XuniMiner(self.vast).mine_xuni()
 
@@ -139,6 +142,22 @@ class MainMenu:
     def reboot_instances(self):
         VastInstanceRules.is_outbid()
         self.vast.reboot_instance()
+
+
+    def shutdown_next_block(self):
+        blocks = self.table.tot_block
+
+        while True:
+            time.sleep(60)
+
+            self.table.refresh()
+
+            if self.table.tot_block > blocks:
+                for inst in self.table.instances:
+                    if inst.is_running():
+                        self.vast.kill_instance(inst.id)
+
+            break
 
 
     def get_auto_menu(self) -> Menu:

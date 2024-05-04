@@ -12,6 +12,8 @@ from views.TerminateMenu import *
 import app_config as app
 import config as config
 from constants import *
+from integrationtest import integration_tests
+
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()  
@@ -21,15 +23,18 @@ load_dotenv()
 
 
 def main():
-    app.set_db_manager(DbManager(config.DB_NAME))
-    app.set_vast_ai_command(VastAiCLI(config.API_KEY))
-    a = VastClient(config.API_KEY, config.BLACKLIST)
-    app.set_vast_client(a)
+#    app.set_db_manager(DbManager(config.DB_NAME))
+#    app.set_vast_ai_command(VastAiCLI(config.API_KEY))
+#    a = VastClient(config.API_KEY, config.BLACKLIST)
+#    app.set_vast_client(a)
 
-    #vast = VastClient(config.API_KEY, config.BLACKLIST)
+    # vast = VastClient(config.API_KEY, config.BLACKLIST)
+
     buy = BuyMenu()
     terminate = TerminateMenu()
     main_menu = MainMenu(buy, terminate)
+
+    integration_tests.run_all_tests()
 
     print_config()
 

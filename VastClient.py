@@ -15,11 +15,17 @@ from Field import Field
 from constants import *
 from tostring import auto_str
 import config
+from cachetools import cached, TTLCache
+import logger as log
+
 
 INSTANCE_URL = "https://console.vast.ai/api/v0/instances"
 
 f = Field(ORANGE)
 fgray = Field(GRAY)
+
+SECONDS = 1
+MINUTES = 60*SECONDS
 
 
 @auto_str
@@ -30,20 +36,35 @@ class VastClient:
         self.vast_cmd = vast_cmd
 
 
+    def get_selected_instances(self, ids: list[int]) -> list[VastInstance]:
+        instances = self.get_instances()
+        print("ids: ", str(ids))
+        iterator = filter(lambda x: x.id in ids, instances)
+        result = list(iterator)
+        print("Bought: ", len(result))
+        return result
+
+
     def get_instances(self) -> list[VastInstance]:
-        headers = {"Authorization": f"Bearer {self.api_key}"}
         instances = []
         try:
-            response = requests.get(INSTANCE_URL, headers=headers)
-            response.raise_for_status()
-            data = response.json()
+            cached_response = self.__get_cached_response()
+            cached_response.raise_for_status()
+            data = cached_response.json()
+            rows = data.get('instances', [])
 
-            for json_data in data.get('instances', []):
+            if len(rows) < 1:
+                raise Exception("WTF!!!")
+
+            for json_data in rows:
                 inst = self.instance_from_json(json_data)
                 instances.append(inst)
 
         except requests.RequestException as e:
             logging.error(f"Error fetching instances: {e}")
+
+        if len(instances) < 1:
+            log.print_error("No VAST instances found!!!")
 
         return instances
 
@@ -52,19 +73,23 @@ class VastClient:
         return VastInstance(json)
 
 
-    def create_instance(self, addr: str, instance_id: int, price: float) -> dict:
+    def create_instance(self, addr: str, instance_id: int, price: float) -> int:
         cmd = VastAiCLI(self.api_key)
+        response = None
         if not config.MANUAL_MODE:
-            return cmd.create(addr, instance_id, price)
+            response = cmd.create(addr, instance_id, price)
         else:
-            return cmd.create_manual_instance(addr, instance_id, price)
+            response = cmd.create_manual_instance(addr, instance_id, price)
+
+        return int(response.get('new_contract'))
 
 
-    def increase_bid(self, instance_id, new_price):
+    def increase_bid(self, instance_id: int, new_price: float):
         cmd = VastAiCLI(self.api_key)
         cmd.change_bid(instance_id, new_price)
 
 
+#    @cached(cache=TTLCache(maxsize=1, ttl=10*MINUTES))
     def get_vast_balance(self) -> float:
         billing_data: str = VastAiCLI(self.api_key).get_billing()
 
@@ -72,7 +97,7 @@ class VastClient:
             print(f.format(f"Failed to get billing!!"))
             return None
 
-        return Billing.parse_balance(billing_data)
+        return Billing.parse_table(billing_data)
 
 
     def reboot_instance(self, instance_id):
@@ -95,6 +120,17 @@ class VastClient:
             print(result)
         else:
             print(f.format(f"Failed to terminate instance {instance_id}."))
+
+
+    def kill_instances(self, ids: list):
+        log_info(f"Attempting to terminate instances {ids}...")
+        result = VastAiCLI(self.api_key).delete_all(ids)
+
+        if result:
+            print(f.format(f"Instance {ids} terminated successfully."))
+            print(result)
+        else:
+            print(f.format(f"Failed to terminate instance {ids}."))
 
 
     def get_offer_for_instance(self, instance_id: int) -> list:
@@ -166,7 +202,7 @@ class VastClient:
             logging.error(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.id}: {e}")
 
 
-    def get_miner_statistics1(self, inst: VastInstance, stats):
+    def get_miner_statistics_delete(self, inst: VastInstance, stats):
         # Instance stopped
         if not inst.is_running():
             #            inst.miner_status = "offline"
@@ -202,6 +238,13 @@ class VastClient:
                 return True
 
         return False
+
+
+    @cached(cache=TTLCache(maxsize=1, ttl=60*SECONDS))
+    def __get_cached_response(self) -> requests.Response:
+        print("VAST instance cache loaded...")
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        return requests.get(INSTANCE_URL, headers=headers)
 
 
 def log_info(info):

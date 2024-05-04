@@ -32,18 +32,7 @@ class XenBlocks:
             logging.error(f"Error fetching instances: {e}")
 
 
-    def _get_leaderboard(self) -> str:
-        headers = {}
-        try:
-            response: Response = requests.get(LEADERBOARD_URL, headers=headers)
-            response.raise_for_status()
-            return response.content.decode("utf-8")
-
-        except requests.RequestException as e:
-            logging.error(f"Error fetching instances: {e}")
-
-
-    def get_miner_stats(self) -> list[str]:
+    def get_xenblocks_balance(self) -> list[str]:
         stats_table: list = []
         text = self._get_leaderboard()
 #        print(text[1100:1800])
@@ -66,23 +55,33 @@ class XenBlocks:
         return stats_table
 
 
-    def map_row(self, row: str) -> XenBlocksWallet:
+    def map_row(self, row: str, timestamp_s: int) -> XenBlocksWallet:
         fields: list = get_elements("<td>", "</td>", row)
         if len(fields) < 4:
             return None
 
-        return map_fields(fields)
+        return map_fields(fields, timestamp_s)
 
 
-def map_fields(fields: list) -> XenBlocksWallet:
+    def _get_leaderboard(self) -> str:
+        headers = {}
+        try:
+            response: Response = requests.get(LEADERBOARD_URL, headers=headers)
+            response.raise_for_status()
+            return response.content.decode("utf-8")
+
+        except requests.RequestException as e:
+            logging.error(f"Error fetching instances: {e}")
+
+
+def map_fields(fields: list, timestamp_s: int) -> XenBlocksWallet:
 
     rank = int(fields[0])
     addr = fields[1]
     block = int(fields[2])
     sup = int(fields[3])
     xuni = 0
-    timestamp = Time.now().timestamp
-    return XenBlocksWallet(addr, rank, block, sup, xuni, timestamp, 0.0)
+    return XenBlocksWallet(addr, rank, block, sup, xuni, timestamp_s, 0.0)
 
 
 def get_elements(start_tag: str, end_tag: str, from_text: str):

@@ -82,7 +82,6 @@ class VastInstance:
         if not self.get_host():
             return None
 
-#        miner_url = f"{inst.get_link()}/data"
         return f"http://" + self.get_host() + "/data"
 
     def get_host(self) -> str:

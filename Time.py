@@ -26,6 +26,10 @@ class Time:
         return day, hour, min
 
 
+    def datetime(self) -> datetime:
+        return datetime.fromtimestamp(self.timestamp)
+
+
     def subtract(self, hours: float, minutes: float) -> 'Time':
         new_time: datetime = datetime.fromtimestamp(self.timestamp) - timedelta(hours=hours, minutes=minutes)
         return Time(new_time.timestamp())
@@ -37,10 +41,6 @@ class Time:
         t2 = datetime.fromtimestamp(timestamp2)
 
         return datetime.fromtimestamp(self.timestamp) - t2
-
-
-    def datetime(self) -> datetime:
-        return datetime.fromtimestamp(self.timestamp)
 
 
     def get_age_in_seconds(self, from_time: float) -> int:

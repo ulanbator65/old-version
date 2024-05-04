@@ -16,8 +16,8 @@ class Billing:
 
 
     @staticmethod
-    def parse_balance(data: str) -> float:
-        lines: list = data.strip().split("\n")
+    def parse_table(table: str) -> float:
+        lines: list = table.strip().split("\n")
         header = lines[0]
         totals: str = lines[len(lines)-1]
         rows: list = lines[1:len(lines)-2]

@@ -32,11 +32,11 @@ def set_vast_ai_command(vast):
 
 def vast_client():
     global _vast_client
-    print("3", _vast_client)
+#    print("3", _vast_client)
     return _vast_client
 
 
 def set_vast_client(vast_client):
-    print("2", vast_client)
+#    print("2", vast_client)
     global _vast_client
     _vast_client = vast_client
