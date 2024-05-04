@@ -74,7 +74,8 @@ class MinerGroup:
 
         historic_balance = self.select_snapshot_from_history(24)
         if not historic_balance:
-            return self.block_rate_per_hour(1) * 24
+            return 0.0
+            # return self.block_rate_per_hour(1) * 24
 
         delta_balance = self.balance.difference(historic_balance)
 

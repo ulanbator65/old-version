@@ -24,10 +24,11 @@ class DbManager:
             return connection.cursor() \
                 .execute(sql).fetchall()
 
-    def insert(self, prepared_statement: str, params: tuple):
+    def insert(self, prepared_statement: str, params: tuple) -> bool:
         with closing(self._open()) as connection:
             connection.cursor().execute(prepared_statement, params)
             connection.commit()
+        return True
 
     def update(self, prepared_statement: str, params: tuple):
         with closing(self._open()) as connection:

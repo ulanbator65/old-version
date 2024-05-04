@@ -28,7 +28,7 @@ class MinerStatisticsTable:
 
         self.vast = vast
         self.vast_balance: Balance = None
-        self.vast_instances = vast.get_instances()
+        self.vast_instances = None
         self.db = XenBlocksWalletHistoryRepo()
         self.snapshot_time: datetime = datetime.now()
         # Statistics
@@ -46,21 +46,21 @@ class MinerStatisticsTable:
 
 
     def load_miners(self):
+        self.vast_instances = self.vast.get_instances()
 
 #        addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower()]
 #        addr_list: list = ["0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23".lower()]
 #        addr_list = ["0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA".lower()]
 
-        rank200: XenBlocksWallet = Cache.get_balance_for_rank(200)
+        rank200: XenBlocksWallet = Cache.get_balance_for_rank(200, int(Time.now().timestamp))
+        if rank200:
+            print(text_color("Rank 200: ", LIGHT_PINK), text_color(rank200.to_str(), LIGHT_PINK))
 
-        print(text_color("Rank 200: ", LIGHT_PINK), text_color(str(rank200), LIGHT_PINK))
-
-        balance_usd: float = self.vast.get_vast_balance()
-        print("Balance>>>", balance_usd)
-
+        now = int(Time.now().timestamp)
         miner_groups = []
+
         for addr in addr_list:
-            group = self.create_miner_group(addr)
+            group = self.create_miner_group(addr, now)
             if group:
                 miner_groups.append(group)
 
@@ -71,10 +71,13 @@ class MinerStatisticsTable:
         return MinerStatistics(w.addr, w.block, w.sup, w.xuni, 0, 0)
 
 
-    def create_miner_group(self, addr: str) -> MinerGroup:
+    def create_miner_group(self, addr: str, timestamp_s: int) -> MinerGroup:
+        balance_usd: float = self.vast.get_vast_balance()
+        print("Balance>>>", balance_usd)
+
         vast_instances = self.get_instances_for_address(addr)
 
-        balance = Cache.get_wallet_balance(addr)
+        balance = Cache.get_wallet_balance(addr, timestamp_s)
         if balance:
             self.save_historic_data(balance)
 
@@ -84,6 +87,7 @@ class MinerStatisticsTable:
             return MinerGroup(balance, balance_history, vast_instances)
 
         return None
+
 
     def select_snapshot_from_history(self, history: list[XenBlocksWallet], age_hours: int) -> XenBlocksWallet:
 
@@ -103,24 +107,29 @@ class MinerStatisticsTable:
         self.print_table()
 
 
-    def update_balance_history(self):
+    def update_balance_history(self, timestamp_s: int):
         for addr in addr_list:
-            balance = Cache.get_wallet_balance(addr)
-            self.save_historic_data(balance)
+            balance = Cache.get_wallet_balance(addr, timestamp_s)
+            if balance:
+                self.save_historic_data(balance)
 
 
     def save_historic_data(self, snapshot: XenBlocksWallet):
-        min_diff_minutes = 60.0
+        min_diff_minutes = 57.0
+
+        balance_usd: float = self.vast.get_vast_balance()
+        print("Balance>>>", balance_usd)
 
         # Save to DB once per hour at the most
         latest_snapshot = self.db.get_latest_version(snapshot.addr)
         if latest_snapshot:
             diff_seconds = (snapshot.timestamp_s - latest_snapshot.timestamp_s)
             diff_minutes = diff_seconds / 60
+            print("Diff: " + str(diff_minutes))
 
             if diff_minutes > min_diff_minutes:
                 self.db.create(snapshot)
-                print(f"Saved to DB: {snapshot}")
+                print(f"Saved to DB: {snapshot.to_str()}")
         else:
             self.db.create(snapshot)
 
@@ -181,6 +190,7 @@ class MinerStatisticsTable:
 
 
     def print_table(self):
+        delta_hours = 2
         table: ColorTable = ColorTable(theme=THEME1)
         header = ["Address", "Cost/h", "Effect", "Hours", "BLK/h", "BLK cost", "BLK/3h", "BLK/d", "BLK", "SUP", "XUNI"]
         table.field_names = header
@@ -198,7 +208,7 @@ class MinerStatisticsTable:
         idx = 1
         for mg in self.miner_groups:
 
-            delta: XenBlocksWallet = mg.get_delta(1)
+            delta: XenBlocksWallet = mg.get_delta(delta_hours)
 
             if delta:
                 row = self.get_row(idx, mg, delta)
@@ -257,7 +267,7 @@ class MinerStatisticsTable:
             # 5
             f"${block_cost:.3f}",
             to_string(block_rate2),
-            str(int(block_per_day)),
+            to_string(block_per_day),
             str(delta.block),          # 7
             str(delta.sup),             # 15
             str(delta.xuni)

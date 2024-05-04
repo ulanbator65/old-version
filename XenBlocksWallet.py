@@ -1,8 +1,7 @@
 
-from tostring import *
+from datetime import datetime
 
 
-@auto_str
 class XenBlocksWallet:
     def __init__(self, addr: str, rank: int, block: int, sup: int, xuni: int, timestamp: float, cost_ph: float):
 
@@ -14,6 +13,11 @@ class XenBlocksWallet:
 
         self.timestamp_s: int = int(timestamp)
         self.cost_per_hour: float = round(cost_ph, 3)
+
+
+    def to_str(self):
+        time = datetime.fromtimestamp(self.timestamp_s)
+        return f"addr: {self.addr}, time: {time}, rank: {self.rank}, block: {self.block}, super: {self.sup}"
 
 
     def difference(self, other_wallet: 'XenBlocksWallet') -> 'XenBlocksWallet':

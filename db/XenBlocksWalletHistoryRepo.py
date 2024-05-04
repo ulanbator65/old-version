@@ -31,7 +31,7 @@ class XenBlocksWalletHistoryRepo:
         return len(self.get(addr))
 
 
-    def create(self, snapshot: XenBlocksWallet):
+    def create(self, snapshot: XenBlocksWallet) -> bool:
         if snapshot.block < 200:
             # This seems to be a delta count and not the total counter
            raise Exception("WTF!!!")
@@ -47,7 +47,7 @@ class XenBlocksWalletHistoryRepo:
 
             params = (snapshot.addr, snapshot.timestamp_s, snapshot.block, previous.sup, snapshot.xuni, snapshot.cost_per_hour)
 
-        self.db.insert(INSERT, params)
+        return self.db.insert(INSERT, params)
 
 
     def get_for_timestamp(self, addr: str, timestamp: int) -> XenBlocksWallet:
