@@ -1,3 +1,7 @@
+
+https://github.com/TreeCityWes/XenBlocks-Assistant.git
+
+
 ![img.png](img.png)
 
 # Vast.ai XenBlocks Mining Assistant

@@ -55,10 +55,10 @@ class VastAiCLI:
         return self._stdout_to_dict(result)
 
 
-    def reboot(self, instance_id: int) -> dict:
+    def reboot(self, instance_id: int) -> str:
         command = ["vastai", "reboot", "instance", str(instance_id), "--api-key", self.api_key]
-        result = self.run(command)
-        return self._stdout_to_dict(result)
+        return self.run(command)
+#        return self._stdout_to_dict(result)
 
 
     def delete(self, instance_id: int) -> str:

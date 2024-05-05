@@ -21,8 +21,9 @@ BG = '\033[48;5;'
 RESET = PRE + '0m'   # Reset color
 BLINK = '\033[5m'
 
-#GRAY = PRE + '90m'
 GRAY = fg_color(243)
+
+#GRAY = PRE + '90m'
 DARK_GRAY = PRE + '91m' #PRE  + '235m'
 
 RED = PRE + '91m'

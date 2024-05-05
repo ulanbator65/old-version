@@ -1,8 +1,10 @@
 
 
+import time
 from datetime import datetime
-from logger import *
+import logger as log
 
+from statemachine.StateMachine import StateMachine
 from VastClient import VastClient
 from MinerStatisticsTable import MinerStatisticsTable
 from XenblocksHistoryManager import XenblocksHistoryManager
@@ -20,6 +22,23 @@ class Controller:
         self.balance_history = MinerStatisticsTable(self.vast)
         self.xenblocks_history = XenblocksHistoryManager()
         self.gpu_catcher = GpuCatcher(config.ADDR, vast).sm
+        self.state_machines: list[StateMachine] = []
+
+
+    def add_state_machine(self, sm):
+        self.state_machines.append(sm)
+
+
+    def run(self):
+
+        while True:
+            time_tick = datetime.now()
+            log.print_info(str(time_tick)[11:19])
+
+            for sm in self.state_machines:
+                sm.execute(time_tick)
+
+            time.sleep(60)
 
 
     def get_time(self) -> datetime:
@@ -28,7 +47,7 @@ class Controller:
 
     def _time_tick(self):
         tick = datetime.now()
-        print_info(str(tick)[11:19])
+        log.print_info(str(tick)[11:19])
 
         if self.previous_time_tick:
             delta = tick - self.previous_time_tick

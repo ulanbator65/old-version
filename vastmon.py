@@ -44,17 +44,18 @@ def main():
 def print_config():
     COL = GOLD
     COL2 = LIGHT_PINK
+    indent = " "*25
     # Print out the configuration settings
     print("")
-    print(f"  {COL}{'=' * 60}{RESET}")
-    print(f"  {COL}||{'VAST Monitor v2.0'.center(56)}||{RESET}")
-    print(f"       {LIGHT_CYAN2}User Configuration:{RESET}")
-    print(f"       Address: {COL2}{config.ADDR}{RESET}")
-    print(f"       Image: {COL2}{config.VAST_IMAGE}{RESET}")
-    print(f"       Database: {COL2}{config.DB_NAME}{RESET}")
-    print(f"       Manual Mode: {COL2}{config.MANUAL_MODE}{RESET}")
-    print(f"  {COL}||{' '.center(56)}||{RESET}")
-    print(f"  {COL}{'=' * 60}{RESET}\n")
+    print(indent + f"  {COL}{'=' * 60}{RESET}")
+    print(indent + f"  {COL}||{'VAST Monitor v2.0'.center(56)}||{RESET}")
+    print(indent + f"       {LIGHT_CYAN2}User Configuration:{RESET}")
+    print(indent + f"       Address: {COL2}{config.ADDR}{RESET}")
+    print(indent + f"       Image: {COL2}{config.VAST_IMAGE}{RESET}")
+    print(indent + f"       Database: {COL2}{config.DB_NAME}{RESET}")
+    print(indent + f"       Manual Mode: {COL2}{config.MANUAL_MODE}{RESET}")
+    print(indent + f"  {COL}||{' '.center(56)}||{RESET}")
+    print(indent + f"  {COL}{'=' * 60}{RESET}\n")
 
 
 if __name__ == "__main__":

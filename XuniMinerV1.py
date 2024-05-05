@@ -10,7 +10,7 @@ from Field import *
 from Menu import Menu
 from VastMinerTable import VastMinerTable
 from MinerStatisticsTable import MinerStatisticsTable
-from Controller import Controller
+from statemachine.Controller import Controller
 
 import logger
 
@@ -218,7 +218,7 @@ class XuniMiner:
         all_instances = self.get_vast_instances()
         xuni_miners = self.get_xuni_miners()
 
-        #        self.kill_outbid_instances(instances, dflop_min)
+        self.kill_outbid_instances(xuni_miners, dflop_min)
         self.handle_low_performing_instances(all_instances, hash_per_usd_min)
         self.kill_unable_to_start_instances(xuni_miners)
 
