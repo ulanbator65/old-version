@@ -10,8 +10,13 @@ class StateMachine:
 
     def __init__(self, states: list[State]):
         self.states: list[State] = states
+        self.end_state = None
         self.next_state: State = self.states[0]
         print_state(self.next_state)
+
+
+    def set_end_state(self, state: State):
+        self.end_state = state
 
 
     def execute(self, time_tick: datetime):

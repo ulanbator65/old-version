@@ -3,7 +3,10 @@ from views.BuyMenu import BuyMenu
 from views.TerminateMenu import TerminateMenu
 from Menu import *
 from MinerStatisticsTable import MinerStatisticsTable
-from XuniMiner import XuniMiner
+from XuniMinerV2 import XuniMinerV2
+from GpuCatcher import GpuCatcher
+from XenblocksHistoryManager import XenblocksHistoryManager
+from statemachine.Controller import Controller
 from MinerCatcher import MinerCatcher
 from InstanceTable import InstanceTable
 from VastInstanceRules import VastInstanceRules
@@ -47,7 +50,17 @@ class MainMenu:
             self.miner_group_table.print()
 
         if config.RUN_XUNI_MINER:
-            XuniMiner(self.vast).mine_xuni()
+            sm1 = XuniMinerV2(self.vast).get_state_machine()
+            sm2 = XenblocksHistoryManager().get_state_machine()
+            sm3 = GpuCatcher(config.ADDR, self.vast).get_state_machine()
+
+            controller = Controller(self.vast)
+            controller.add_state_machine(sm1)
+            controller.add_state_machine(sm2)
+            controller.add_state_machine(sm3)
+
+            controller.run()
+#            XuniMiner(self.vast).mine_xuni()
 
         while running:
             choice = main_menu.select()

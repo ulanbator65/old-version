@@ -22,7 +22,7 @@ addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower(),
                    "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA".lower()
                    ]
 
-MIN_DFLOP = 500
+MIN_DFLOP = 300
 
 
 class GpuCatcher:
@@ -30,7 +30,7 @@ class GpuCatcher:
     def __init__(self, addr: str, vast: VastClient):
         self.addr = addr
         self.s1 = State(S_STARTED, [f"Frequency in minutes: {FREQUENCY_M}"], self.state_run)
-#        self.s2 = State(S_DONE, self.state_completed)
+#        self.s_buy_miners = State(S_DONE, self.state_completed)
         self.sm = StateMachine([self.s1])
         self.vast = vast
         self.automation = Automation(vast)
@@ -44,9 +44,10 @@ class GpuCatcher:
     def state_run(self, time_tick: datetime) -> State:
 
         diff = time_tick.timestamp() - self.previous_time_tick.timestamp()
-
         print("Jaha: ", str(diff/60))
-        if diff > 2*60:
+
+        if diff > 50+60:
+            self.previous_time_tick = time_tick
             self.buy_cheap_a5000()
 
         return self.s1
