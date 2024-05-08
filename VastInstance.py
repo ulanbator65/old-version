@@ -152,7 +152,7 @@ class VastInstance:
 
 
     def print_states(self):
-        print("Actual:", self.json.get('actual_status'), " Intended:", self.json.get('intended_status'), " Current:", self.json.get('cur_state'), " Next:", self.json.get('next_state'))
+        print("Actual:", self.json.get('actual_status'), " Intended:", self.json.get('intended_status'), " Current:", self.json.get('cur_state'), " Next:", self.json.get('state'))
 
 
     @staticmethod

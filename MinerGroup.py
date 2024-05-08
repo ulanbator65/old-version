@@ -15,15 +15,20 @@ class MinerGroup:
         self.cost_ph = 0
         self.db = XenBlocksWalletHistoryRepo()
 
-        active_miners = list(filter(lambda x: x.is_running(), self.instances))
-        self.total_miners: int = len(self.instances)
-        self.active_miners: int = len(active_miners)
+#        active_miners = list(filter(lambda x: x.is_running(), self.instances))
+#        self.active_miners: int = len(active_miners)
+        self.active_gpus = 0
+        self.total_gpus = 0
 
         for ins in self.instances:
             self.cost_ph += ins.effective_cost_per_hour(0.04)
+            self.total_gpus += ins.num_gpus
+
+            if ins.is_running():
+                self.active_gpus += ins.num_gpus
 
 
-    def get_delta(self, hours: int) -> XenBlocksWallet:
+    def get_delta(self, hours: float) -> XenBlocksWallet:
         if not self.balance or not self.balance_history:
             return None
 
@@ -85,14 +90,9 @@ class MinerGroup:
         return block_delta
 
 
-    def select_snapshot_from_history(self, age_hours: int, max_deviation_h: float = 0.6) -> XenBlocksWallet:
+    def select_snapshot_from_history(self, age_hours: float, max_deviation_h: float = 0.6) -> XenBlocksWallet:
 
         timestamp_s = self.balance.timestamp_s - (3600 * age_hours)
-
-#        print("--------------")
-#        for h in self.balance_history:
-#            print(datetime.fromtimestamp(h.timestamp_s))
-#        print("--------------")
 
         print("Search for: ", datetime.fromtimestamp(timestamp_s))
 
@@ -107,10 +107,9 @@ class MinerGroup:
 
             if h.timestamp_s < timestamp_s:
                 print("Found: ", datetime.fromtimestamp(h.timestamp_s))
-
                 diff_h: float = (timestamp_s - h.timestamp_s) / 3600
-#                diff_h = diff_h - age_hours
                 print("Diff: ", diff_h)
+
                 # Don't allow the historic value to deviate more than 1 hour (or 'max_deviation')
                 if abs(diff_h) > max_deviation_h:
                     return None
@@ -120,9 +119,13 @@ class MinerGroup:
         return None
 
 
+    def get_block_count_for_address(self):
+        return self.balance.block
+
+
     def effect(self) -> float:
-        if self.total_miners <= 0:
+        if self.total_gpus == 0:
             return 0
-        return self.active_miners / self.total_miners
+        return self.active_gpus / self.total_gpus
 
 

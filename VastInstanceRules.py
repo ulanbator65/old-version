@@ -24,7 +24,7 @@ class VastInstanceRules:
 
     @staticmethod
     def is_outbid(status: str):
-        return status == VastInstanceRules.status_for_outbid()
+        return status == VastInstanceRules.status_for_outbid() or status == "created"
 
     @staticmethod
     def status_for_outbid():

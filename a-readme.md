@@ -80,7 +80,7 @@ sudo reboot
 
 Execute the Docker command with your Xenblocks address. Make sure to replace 'your_username' with your actual username and 'your_xenblocks_address' with your actual Xenblocks address:
 ```bash
-docker run -it -d --restart unless-stopped -p 2222:22 -p 8080:8080 -p 8000:8000 --gpus=all -e ADDR=your_xenblocks_address smit1237/xengpuminer:vast
+docker run -it -d --restart unless-stopped -p 2222:22 -p 8080:8080 -p 8000:8000 --active_gpus=all -e ADDR=your_xenblocks_address smit1237/xengpuminer:vast
 ```
 
 This command downloads an image (3.7 gigabytes in size) with all you need to mine. After it's done, it will start mining. You can observe a nice and simple web UI on http://your_mining_machine_ip:8080. You can safely reboot the machine; mining will start automatically unless you stop it.

@@ -2,6 +2,7 @@
 from datetime import timedelta
 from prettytable.colortable import *
 from VastInstance import VastInstance
+import XenBlocksCache as Cache
 from Field import Field
 from MinerStatistics import *
 from constants import *
@@ -9,7 +10,7 @@ from constants import *
 import config
 
 
-class VastMinerTable:
+class VastMinerRealtimeTable:
 
     def __init__(self, instances: list[VastInstance]):
         self.instances: list[VastInstance] = instances
@@ -84,6 +85,17 @@ class VastMinerTable:
                     instance.reset_hours()
 
 
+    # Add Miner total stats
+    def add_miner_stats(self, ins: VastInstance):
+        if ins.is_miner_data_loaded():
+            stats = ins.miner
+            self.tot_hashrate += stats.hashrate
+            self.tot_block += stats.block
+            self.tot_super += stats.sup
+            self.tot_XUNI += stats.xuni
+            self.tot_block_rate += stats.block_rate()
+
+
     def print_table(self):
         table: ColorTable = ColorTable(theme=THEME1)
         h = ["#", "Vast ID", "GPU", "Cost/h", "DFlop", "MS", "Ov", "Hash", "Hash/$", "Hours", "BLK/h", "BLK $", "BLK/d", "BLK", "SUP", "XUNI", "Since", "Location", "Status", "Addr"]
@@ -104,30 +116,18 @@ class VastMinerTable:
         for ins in self.instances:
             color = C_ERROR
             rental_since = self.get_rented_since(ins)
-            stats = ins.miner
 
-            #
             #   Miner totals stats for all instances
-            #
-            if ins.is_managed and ins.is_miner_data_loaded():
+            if ins.is_managed and ins.is_running():
                 self.tot_cost += ins.cost_per_hour
-                # Miner total stats
-                self.tot_hashrate += stats.hashrate
-                self.tot_block += stats.block
-                self.tot_super += stats.sup
-                self.tot_XUNI += stats.xuni
-                self.tot_block_rate += stats.block_rate()
+                self.add_miner_stats(ins)
 
-                total.cost_per_hour += ins.cost_per_hour
+#                total.cost_per_hour += ins.cost_per_hour
                 # Miner total stats
-                total.hashrate += stats.hashrate
-                total.block += stats.block
-                total.sup += stats.sup
-                total.xuni += stats.xuni
-
-            #
-            #   Individual miner stats
-            #
+#                total.hashrate += stats.hashrate
+#                total.block += stats.block
+#                total.sup += stats.sup
+#                total.xuni += stats.xuni
 
             # If miner stats are available...
             if ins.is_miner_data_loaded() or ins.is_manual_override():
@@ -136,15 +136,17 @@ class VastMinerTable:
 
             # No miner stats...
             else:
+                color = GRAY
                 row = self.get_row_for_reserved_instance(idx, rental_since, ins)
-                if ins.actual_status == "running" and config.MANUAL_MODE is True:
+
+                if ins.is_running() and config.MANUAL_MODE is True:
                     color = C_OK
 
-                elif ins.actual_status != "running" and ins.actual_status != "exited":
-                    color = C_ATTENTION_BLINK
+                elif ins.is_running():
+                    color = C_WARNING
 
-                else:
-                    color = GRAY
+                elif not ins.is_running() and not ins.is_outbid():
+                    color = C_ATTENTION_BLINK
 
             self.add_row(table, row, color)
             idx += 1
@@ -164,6 +166,14 @@ class VastMinerTable:
         print()
         f = Field(GOLD)
         print("  ", f.gray(time), "   Diff: ", f.yellow(str(int(self.get_difficulty()/1000))+"K"))
+
+
+    def verify_difficulty(self, diff: int):
+
+        for inst in self.instances:
+            if inst.is_running() and inst.miner:
+                if diff != inst.miner.difficulty:
+                    print(">>>>>>  WTF!!!")
 
 
     def add_row(self, table: ColorTable, row: list, color: str):
@@ -336,14 +346,8 @@ class VastMinerTable:
 
 
     def get_difficulty(self) -> int:
-        if len(self.instances) == 0:
-            return 0
-
-        for ins in self.instances:
-            if ins.miner and ins.miner.difficulty > 0:
-                return ins.miner.difficulty
-
-        return 0
+        diff = Cache.get_difficulty()
+        return diff if diff else 0
 
 
     def get_row_color(self, ins: VastInstance):

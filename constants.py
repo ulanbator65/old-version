@@ -75,3 +75,16 @@ C_THEME2 = GRAY2
 THEME1: Theme = Theme(default_color=C_THEME1, vertical_color=C_THEME1, horizontal_color=C_THEME1, junction_color=C_THEME1, junction_char="-")
 THEME2: Theme = Theme(default_color=LIGHT_CYAN, vertical_color=C_THEME2, horizontal_color=C_THEME2, junction_color=C_THEME2, junction_char="-")
 
+
+ALL_ADDR: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower(),
+                  "0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23".lower(),
+#                  "0xd9007A12b33b699Ee01B7D6f9D9fEae42AB5145C".lower(),
+                  "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA".lower(),
+                  "0xd76cb96ac40fd3510648419925a645465570c822".lower(),
+
+                  "0x83365693bDAA513C0f5Fe61DCDFb5DEE1493C501".lower(),
+                  "0xbAa0BeDaAd3BA04Fe01b71D38D93D5C894392993".lower(),
+                  "0xd50e300208c3a4be060e7ed2ad2cd9937d283a23".lower(),
+                  "0x352462d203f392b6c3e4ceb6d96bac1383609f17".lower(),
+                  ]
+

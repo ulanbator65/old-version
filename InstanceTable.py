@@ -7,7 +7,7 @@ from constants import *
 
 import config
 
-from VastMinerTable import VastMinerTable
+from VastMinerRealtimeTable import VastMinerRealtimeTable
 
 
 class InstanceTable:
@@ -58,7 +58,7 @@ class InstanceTable:
 
 #        self.instances = self.vast.get_instances()
         self.load_miner_stats()
-        self.housekeeping()
+#        self.housekeeping()
 
 
     def load_miner_stats(self):
@@ -66,9 +66,9 @@ class InstanceTable:
         self.sort_on_hashrate_per_dollar()
 #        self.snapshot_time = datetime.now()
 
-        for inst in self.instances:
-            if inst.miner:
-                inst.miner.normalize(inst.get_age_in_hours())
+#        for inst in self.instances:
+#            if inst.miner:
+#                inst.miner.normalize(inst.get_age_in_hours())
 
 
     def housekeeping(self):
@@ -149,7 +149,7 @@ class InstanceTable:
 
 
     def print_table(self):
-        VastMinerTable(self.instances).print_table()
+        VastMinerRealtimeTable(self.instances).print_table()
 
 
     def is_high_performance_instance(self, inst: VastInstance):
