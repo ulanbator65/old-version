@@ -8,8 +8,8 @@ from VastOffer import VastOffer
 import config
 from Field import *
 from Menu import Menu
-from VastMinerTable import VastMinerTable
-from MinerStatisticsTable import MinerStatisticsTable
+from VastMinerRealtimeTable import VastMinerRealtimeTable
+from MinerHistoryTable import MinerHistoryTable
 from statemachine.Controller import Controller
 
 import logger
@@ -29,7 +29,7 @@ S_KEEP_MINING = "Just keep mining..."
 
 
 
-class XuniMiner:
+class XuniMinerV1:
 
     def __init__(self, vast):
         self.controller = Controller(vast)
@@ -60,7 +60,7 @@ class XuniMiner:
 
     def mine_xuni_test(self):
         now = self.controller.get_time()
-        stats_history = MinerStatisticsTable(self.vast)
+        stats_history = MinerHistoryTable(self.vast)
         dflop_min = 240
 
         self.set_state(S_START_MINING, [f"DFLOP min: {dflop_min}",
@@ -78,7 +78,7 @@ class XuniMiner:
 
 
     def mine_xuni(self):
-        stats_history = MinerStatisticsTable(self.vast)
+        stats_history = MinerHistoryTable(self.vast)
         dflop_min = 215
 
         self.set_state(S_START_MINING, [f"DFLOP min: {dflop_min}",
@@ -159,7 +159,7 @@ class XuniMiner:
 
             self.handle_startup()
 
-            logger.print_info(f"Mining ends at: {str(self.mining_end)[11:19]}")
+            logger.info(f"Mining ends at: {str(self.mining_end)[11:19]}")
             time.sleep(60)
 
 
@@ -178,7 +178,7 @@ class XuniMiner:
                 self.state_kill_all_xuni_miners()
                 break
 
-            logger.print_info(f"Mining ends at: {str(self.mining_end)[11:19]}")
+            logger.info(f"Mining ends at: {str(self.mining_end)[11:19]}")
             time.sleep(1*60)
             self.handle_problematic_instances()
             time.sleep(1*60)
@@ -190,7 +190,7 @@ class XuniMiner:
 
         instances = self.get_xuni_miners()
 
-        VastMinerTable(instances).print_table()
+        VastMinerRealtimeTable(instances).print_table()
 
         if len(instances) > 0:
             self.kill_instances(instances)
@@ -354,7 +354,7 @@ class XuniMiner:
 
         if len(outbid_instances) > 0:
             top_dflop = outbid_instances[0]
-            self.automation.increase_bid_for_instance(top_dflop, 1.02)
+            self.automation.increase_bid_for_instance(top_dflop, 500, 1.02)
             print_attention(f"Increased bid for: {top_dflop.id}")
 
 #        self.automation.increase_bid(outbid_instances, 1.02)
@@ -372,7 +372,7 @@ class XuniMiner:
         instances = self.vast.get_selected_instances(self.xuni_miners)
 
         if len(instances) < 1:
-            logger.print_error("No XUNI miners found!")
+            logger.error("No XUNI miners found!")
 
         self.vast.get_miner_data(instances)
         return instances

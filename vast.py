@@ -2000,7 +2000,7 @@ benchmarks_fields = {
     "machine_id",#              int        id of machine benchmarked
     "model",#                   string     name of model used in benchmark
     "name",#                    string     name of benchmark
-    "num_gpus",#                int        number of gpus used in benchmark
+    "num_gpus",#                int        number of active_gpus used in benchmark
     "score"#                   float      benchmark score result
 }
 
@@ -2037,7 +2037,7 @@ benchmarks_fields = {
             machine_id              int        id of machine benchmarked
             model                   string     name of model used in benchmark
             name                    string     name of benchmark
-            num_gpus                int        number of gpus used in benchmark
+            num_gpus                int        number of active_gpus used in benchmark
             score                   float      benchmark score result
     """),
     aliases=hidden_aliases(["search benchmarks"]),
@@ -2206,19 +2206,19 @@ def search__invoices(args):
             # search for somewhat reliable single RTX 3090 instances, filter out any duplicates or offers that conflict with our existing stopped instances
             vastai search offers 'reliability > 0.98 num_gpus=1 gpu_name=RTX_3090 rented=False'
 
-            # search for datacenter gpus with minimal compute_cap and total_flops
+            # search for datacenter active_gpus with minimal compute_cap and total_flops
             vastai search offers 'compute_cap > 610 total_flops > 5 datacenter=True'
 
             # search for reliable 4 gpu offers in Taiwan or Sweden
             vastai search offers 'reliability>0.99 num_gpus=4 geolocation in [TW,SE]'
 
-            # search for reliable RTX 3090 or 4090 gpus NOT in China or Vietnam
+            # search for reliable RTX 3090 or 4090 active_gpus NOT in China or Vietnam
             vastai search offers 'reliability>0.99 gpu_name in ["RTX 4090", "RTX 3090"] geolocation notin [CN,VN]'
 
             # search for machines with nvidia drivers 535.86.05 or greater (and various other options)
             vastai search offers 'disk_space>146 duration>24 gpu_ram>10 cuda_vers>=12.1 direct_port_count>=2 driver_version >= 535.86.05'
 
-            # search for reliable machines with at least 4 gpus, unverified, order by num_gpus, allow conflicts
+            # search for reliable machines with at least 4 active_gpus, unverified, order by num_gpus, allow conflicts
             vastai search offers 'reliability > 0.99  num_gpus>=4 verified=False rented=any' -o 'num_gpus-'
 
             # search for arm64 cpu architecture
@@ -2253,7 +2253,7 @@ def search__invoices(args):
             gpu_name:               string    GPU model name (no quotes, replace spaces with underscores, ie: RTX_3090 rather than 'RTX 3090')
             gpu_ram:                float     per GPU RAM in GB
             gpu_total_ram:          float     total GPU RAM in GB
-            gpu_frac:               float     Ratio of GPUs in the offer to gpus in the system
+            gpu_frac:               float     Ratio of GPUs in the offer to active_gpus in the system
             gpu_display_active:     bool      True if the GPU has a display attached
             has_avx:                bool      CPU supports AVX instruction set.
             id:                     int       instance unique ID
@@ -3467,7 +3467,7 @@ def list_machine(args, id):
             if args.raw:
                 print(json.dumps(r.json(), indent=1))
             else:
-                print("offers created/updated for machine {id},  @ ${price_gpu_}/gpu/day, ${price_inetu_}/GB up, ${price_inetd_}/GB down, {min_chunk_}/min gpus, max discount_rate {discount_rate_}, till {end_date_}".format(**locals()))
+                print("offers created/updated for machine {id},  @ ${price_gpu_}/gpu/day, ${price_inetu_}/GB up, ${price_inetd_}/GB down, {min_chunk_}/min active_gpus, max discount_rate {discount_rate_}, till {end_date_}".format(**locals()))
                 num_extended = rj.get("extended", 0)
 
                 if num_extended > 0:
@@ -3491,7 +3491,7 @@ def list_machine(args, id):
     argument("-u", "--price_inetu", help="price for internet upload bandwidth in $/GB", type=float),
     argument("-d", "--price_inetd", help="price for internet download bandwidth in $/GB", type=float),
     argument("-r", "--discount_rate", help="Max long term prepay discount rate fraction, default: 0.4 ", type=float),
-    argument("-m", "--min_chunk", help="minimum amount of gpus", type=int),
+    argument("-m", "--min_chunk", help="minimum amount of active_gpus", type=int),
     argument("-e", "--end_date", help="contract offer expiration - the available until date (optional, in unix float timestamp or MM/DD/YYYY format)", type=str),
     usage="vastai list machine ID [options]",
     help="[Host] list a machine for rent",
@@ -3520,7 +3520,7 @@ def list__machine(args):
     argument("-u", "--price_inetu", help="price for internet upload bandwidth in $/GB", type=float),
     argument("-d", "--price_inetd", help="price for internet download bandwidth in $/GB", type=float),
     argument("-r", "--discount_rate", help="Max long term prepay discount rate fraction, default: 0.4 ", type=float),
-    argument("-m", "--min_chunk", help="minimum amount of gpus", type=int),
+    argument("-m", "--min_chunk", help="minimum amount of active_gpus", type=int),
     argument("-e", "--end_date", help="contract offer expiration - the available until date (optional, in unix float timestamp or MM/DD/YYYY format)", type=str),
     usage="vastai list machines IDs [options]",
     help="[Host] list machines for rent",

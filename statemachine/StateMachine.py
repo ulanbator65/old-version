@@ -8,11 +8,14 @@ from constants import *
 
 class StateMachine:
 
-    def __init__(self, states: list[State]):
+    def __init__(self, name: str, states: list[State], theme: int = 1):
+        self.name = name
         self.states: list[State] = states
+        self.state: State = self.states[0]
         self.end_state = None
-        self.next_state: State = self.states[0]
-        print_state(self.next_state)
+        self.theme = theme
+        print_state(self.state, self.theme)
+#        raise Exception("WTF!!!")
 
 
     def set_end_state(self, state: State):
@@ -20,18 +23,24 @@ class StateMachine:
 
 
     def execute(self, time_tick: datetime):
-        s = self.next_state.execute(time_tick)
+        s = self.state.execute(time_tick)
 
-        if s.name != self.next_state.name:
-            print(self.next_state.name, " ==>> ", s.name)
-            print_state(s)
+        if s.name != self.state.name:
+            print(self.name, ": ", self.state.name, " ==>> ", s.name)
+            print_state(s, self.theme)
 
-        self.next_state = s
+        self.state = s
 
 
-def print_state(state: State):
+def print_state(state: State, theme: int):
     add_offset = lambda x: " "*5 + x
     offset_rows = list(map(add_offset, state.info))
 
-    Menu(state.name, [""] + offset_rows, 60, col_header=GOLD, col_row=GRAY, col_bg=BG_GRAY).center().print()
+    if theme == 1:
+        Menu(state.name, [""] + offset_rows, 60, col_header=GOLD, col_row=GRAY, col_bg=BG_GRAY).center().print()
+    elif theme == 2:
+        Menu(state.name, [""] + offset_rows, 60, col_header=LIGHT_CYAN2, col_row=GRAY, col_bg=BG_GRAY).center().print()
+    else:
+        Menu(state.name, [""] + offset_rows, 60, col_header=LIGHT_PINK, col_row=GRAY, col_bg=BG_GRAY).center().print()
+    print()
     print()

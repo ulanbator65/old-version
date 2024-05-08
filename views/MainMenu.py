@@ -1,24 +1,32 @@
+
+from datetime import datetime
 from AutoMiner import AutoMiner
 from views.BuyMenu import BuyMenu
 from views.TerminateMenu import TerminateMenu
+from views.OfflineMenu import OfflineMenu
 from Menu import *
-from MinerStatisticsTable import MinerStatisticsTable
+from MinerHistoryTable import MinerHistoryTable
+from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
 from XuniMinerV2 import XuniMinerV2
 from GpuCatcher import GpuCatcher
+from AutoMiner import AutoMiner
 from XenblocksHistoryManager import XenblocksHistoryManager
+from OfflineMinerManager import OfflineMinerManager
 from statemachine.Controller import Controller
-from MinerCatcher import MinerCatcher
 from InstanceTable import InstanceTable
-from VastInstanceRules import VastInstanceRules
+
 import config
+import constants
 import time
+import logger as log
+import XenBlocksCache
 
 
 AUTO = '0'
 VIEW_INSTANCE = '1'
 KILL_INSTANCES = '2'
 BUY_INSTANCE = '3'
-REBOOT = '4'
+MANAGE_OFFLINE = '4'
 REFRESH_MINER_STATS = '5'
 INCREASE_BID = '6'
 M_RESET = '7'
@@ -36,7 +44,7 @@ class MainMenu:
         self.terminate = terminate
         self.automation = Automation(vast)
         self.table = InstanceTable()
-        self.miner_group_table = MinerStatisticsTable(self.vast)
+        self.miner_group_table = MinerHistoryTable(self.vast)
     #    print(vast)
 
 
@@ -46,21 +54,56 @@ class MainMenu:
         running = True
         main_menu: Menu = self.get_menu()
 
+        addr = ["0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23",
+                "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA",
+                "0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a"]
+
+        timestamp = int(datetime.now().timestamp())
+        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(220, timestamp)
+        w1_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[0], timestamp)
+        w2_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[1], timestamp)
+        w3_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[2], timestamp)
+        if rank200:
+            log.info(LIGHT_PINK + "Rank 220: " + rank200.to_str())
+            log.info(LIGHT_PINK + "XUNI: " + w1_xuni.to_str())
+            log.info(LIGHT_PINK + "XUNI: " + w2_xuni.to_str())
+            log.info(LIGHT_PINK + "XUNI: " + w3_xuni.to_str())
+
+        tot_balance = 0
+        for a in constants.ALL_ADDR:
+            balance = XenBlocksCache.get_wallet_balance(a, timestamp)
+            tot_balance += balance.block
+            # Super blocks are reported inaccurately, sometimes as 0 - so remove from count
+#            tot_balance -= balance.sup
+#            print(balance.block)
+
+        log.info(ORANGE + f"Total balance: {tot_balance}")
+
+#        db = XenBlocksWalletHistoryRepo()
+#        for a in addr:
+#            snapshot = Cache.get_wallet_balance(a, int(datetime.now().timestamp()))
+#            if snapshot:
+#                log.info("Saving snapshot: " + snapshot.addr)
+#                result = db.create(snapshot)
+
+
         if config.SHOW_MINER_GROUPS:
             self.miner_group_table.print()
 
-        if config.RUN_XUNI_MINER:
-            sm1 = XuniMinerV2(self.vast).get_state_machine()
-            sm2 = XenblocksHistoryManager().get_state_machine()
-            sm3 = GpuCatcher(config.ADDR, self.vast).get_state_machine()
-
+        if config.RUN_STATE_MACHINES:
+#            sm1 = XuniMinerV2(self.vast, 1).get_state_machine()
+            sm2 = XenblocksHistoryManager(self.miner_group_table, 2).get_state_machine()
+#            sm3 = GpuCatcher(config.ADDR, self.vast, 3).get_state_machine()
+#            sm4 = OfflineMinerManager(self.vast, 3).get_state_machine()
+            sm5 = AutoMiner(self.vast, 1).get_state_machine()
             controller = Controller(self.vast)
-            controller.add_state_machine(sm1)
-            controller.add_state_machine(sm2)
-            controller.add_state_machine(sm3)
+#            controller.add_state_machine(sm1)
+#            controller.add_state_machine(sm2)
+#            controller.add_state_machine(sm3)
+#            controller.add_state_machine(sm4)
+            controller.add_state_machine(sm5)
 
             controller.run()
-#            XuniMiner(self.vast).mine_xuni()
 
         while running:
             choice = main_menu.select()
@@ -68,20 +111,21 @@ class MainMenu:
 
 
     def get_menu(self) -> Menu:
-        menu_items = []
-        menu_items.append("   0. Automation")
-        menu_items.append("   1. View Running Instances")
-        menu_items.append("   2. Kill Instances")
-        menu_items.append("   3. Buy an Instance")
-        menu_items.append("   4. Reboot")
-        menu_items.append("   5. Refresh miner statistics (Enter)")
-        menu_items.append("   6. Increase bid")
-        menu_items.append("   7. Reset hours")
-        menu_items.append("   ")
-        menu_items.append("   8. Shutdown when next block is mined")
-        menu_items.append("   9. XUNI Miner")
-        menu_items.append("   Exit (x)")
-        return Menu("Main Menu", menu_items, 50)
+        items = []
+        items.append("   0. Automation")
+        items.append("   1. View Running Instances")
+        items.append("   2. Kill Instances")
+        items.append("   3. Buy an Instance")
+        items.append("   ")
+        items.append("   4. Manage Offline Miners")
+        items.append("   5. Refresh miner statistics (Enter)")
+        items.append("   6. Increase bid")
+        items.append("   7. Reset hours")
+        items.append("   ")
+        items.append("   8. Shutdown when next block is mined")
+        items.append("   9. XUNI Miner")
+        items.append("   Exit (x)")
+        return Menu("Main Menu", items, 50)
 
 
     def main_menu_selection(self, choice):
@@ -107,15 +151,15 @@ class MainMenu:
             self.terminate.instance_termination_menu(self.table)
             self.main_menu_selection(VIEW_INSTANCE)
 
-        elif choice == REBOOT:
-            self.reboot_instances()
+        elif choice == MANAGE_OFFLINE:
+            OfflineMenu(self.buy, self.vast).run()
 
         elif choice == PURGE_INSTANCES:
             self.terminate.purge_dead_instances(self.table)
 
         elif choice == INCREASE_BID:
 #            pass
-            self.automation.increase_bid(self.table.instances)
+            self.automation.increase_bid(self.table.instances, 500)
 
         elif choice == M_RESET:
             self.table.reset_hours()
@@ -125,7 +169,8 @@ class MainMenu:
             self.shutdown_next_block()
 
         elif choice == XUNI_MINER:
-            XuniMiner(self.vast).mine_xuni()
+            pass
+#            XuniMiner(self.vast).mine_xuni()
 
         elif choice == M_EXIT or choice == CH_EXIT:
             print("Exiting...")
@@ -149,12 +194,16 @@ class MainMenu:
             AutoMiner(self.vast).start_mining()
 
         if choice == '2':
-            MinerCatcher(self.vast).catch_miners()
+            pass
+#            MinerCatcher(self.vast).catch_miners()
 
 
     def reboot_instances(self):
-        VastInstanceRules.is_outbid()
-        self.vast.reboot_instance()
+        self.table.refresh()
+
+        for inst in self.table.instances:
+            if inst.is_running():
+                self.vast.reboot_instance(inst.id)
 
 
     def shutdown_next_block(self):

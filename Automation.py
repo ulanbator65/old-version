@@ -62,13 +62,14 @@ class Automation:
 
 
 
-    def increase_bid(self, instances: list, bid_factor=1.02):
+    def increase_bid(self, instances: list, dflop_min: int, bid_factor=1.02):
         for inst in instances:
-            self.increase_bid_for_instance(inst, bid_factor)
+            self.increase_bid_for_instance(inst, dflop_min, bid_factor)
 
 
-    def increase_bid_for_instance(self, inst: VastInstance, bid_factor=1.02):
-        if inst.is_outbid():
+    def increase_bid_for_instance(self, inst: VastInstance, dflop_min: int, bid_factor=1.02):
+        if inst.is_outbid() and inst.flops_per_dphtotal > dflop_min:
+
             print("Found outbid instance: ", inst.id)
             print("Price: ", inst.cost_per_hour)
             price = inst.cost_per_hour * bid_factor

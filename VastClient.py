@@ -38,10 +38,8 @@ class VastClient:
 
     def get_selected_instances(self, ids: list[int]) -> list[VastInstance]:
         instances = self.get_instances()
-        print("ids: ", str(ids))
         iterator = filter(lambda x: x.id in ids, instances)
         result = list(iterator)
-        print("Bought: ", len(result))
         return result
 
 
@@ -64,7 +62,7 @@ class VastClient:
             logging.error(f"Error fetching instances: {e}")
 
         if len(instances) < 1:
-            log.print_error("No VAST instances found!!!")
+            log.error("No VAST instances found!!!")
 
         return instances
 
@@ -89,7 +87,7 @@ class VastClient:
         cmd.change_bid(instance_id, new_price)
 
 
-#    @cached(cache=TTLCache(maxsize=1, ttl=10*MINUTES))
+    @cached(cache=TTLCache(maxsize=1, ttl=10*MINUTES))
     def get_vast_balance(self) -> float:
         billing_data: str = VastAiCLI(self.api_key).get_billing()
 
@@ -181,7 +179,7 @@ class VastClient:
         # No connection to Miner
         if not inst.is_running() or not inst.is_managed or not inst.get_miner_url():
             logging.info(f"Miner stats skipped for instance {inst.id} due to unavailable external port.")
-#            inst.miner_status = "offline"
+            inst.miner_status = "offline"
             return
 
         # Get Miner data
@@ -240,7 +238,7 @@ class VastClient:
         return False
 
 
-    @cached(cache=TTLCache(maxsize=1, ttl=60*SECONDS))
+    @cached(cache=TTLCache(maxsize=1, ttl=10*SECONDS))
     def __get_cached_response(self) -> requests.Response:
         print("VAST instance cache loaded...")
         headers = {"Authorization": f"Bearer {self.api_key}"}

@@ -9,7 +9,7 @@ MINUTES = 60
 xenblocks = XenBlocks()
 
 
-@cached(cache=TTLCache(maxsize=1, ttl=59*MINUTES))
+@cached(cache=TTLCache(maxsize=1, ttl=5*MINUTES))
 def get_difficulty() -> int:
     return xenblocks.get_difficulty()
 
@@ -20,7 +20,7 @@ def get_wallet_balance(addr: str, timestamp_s: int) -> XenBlocksWallet:
         return None
 
     if len(cache) < 1000:
-        log.print_error("Cache contained less than 1000 wallet balances - expected several thousands!")
+        log.error("Cache contained less than 1000 wallet balances - expected several thousands!")
         return None
 
     rows = list(filter(lambda x: addr.lower() in x, cache))

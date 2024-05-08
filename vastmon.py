@@ -52,7 +52,7 @@ def print_config():
     print(indent + f"       {LIGHT_CYAN2}User Configuration:{RESET}")
     print(indent + f"       Address: {COL2}{config.ADDR}{RESET}")
     print(indent + f"       Image: {COL2}{config.VAST_IMAGE}{RESET}")
-    print(indent + f"       Database: {COL2}{config.DB_NAME}{RESET}")
+    print(indent + f"       Database: {COL2}{config.DB_NAME}, {config.HISTORY_DB}{RESET}")
     print(indent + f"       Manual Mode: {COL2}{config.MANUAL_MODE}{RESET}")
     print(indent + f"  {COL}||{' '.center(56)}||{RESET}")
     print(indent + f"  {COL}{'=' * 60}{RESET}\n")

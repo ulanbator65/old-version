@@ -3,7 +3,7 @@ from sqlite3 import Connection
 
 from XenBlocksWallet import XenBlocksWallet
 from db.DbManager import DbManager
-from config import DB_NAME
+from config import HISTORY_DB
 from Field import Field
 from constants import *
 
@@ -20,7 +20,7 @@ error = Field(RED)
 
 
 class XenBlocksWalletHistoryRepo:
-    def __init__(self, db_man: DbManager = DbManager(DB_NAME)):
+    def __init__(self, db_man: DbManager = DbManager(HISTORY_DB)):
         self.db: DbManager = db_man
         self.connection: Connection = None
 
@@ -35,6 +35,9 @@ class XenBlocksWalletHistoryRepo:
         if snapshot.block < 200:
             # This seems to be a delta count and not the total counter
            raise Exception("WTF!!!")
+
+        if snapshot.sup == 0:
+            return False
 
         params: tuple = (snapshot.addr, snapshot.timestamp_s, snapshot.block, snapshot.sup, snapshot.xuni, snapshot.cost_per_hour)
 

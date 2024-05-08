@@ -85,7 +85,6 @@ class MinerStatistics:
         # Auto reset in the case the miner was restarted
         if MinerRules.should_reset_hours(self.block, self.xuni):
             self.reset_hours(total_duration)
-            pass
 
 
     #

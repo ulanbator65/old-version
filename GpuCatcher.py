@@ -1,6 +1,6 @@
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from Automation import Automation, VastClient
 from VastOffer import VastOffer
@@ -22,19 +22,19 @@ addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower(),
                    "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA".lower()
                    ]
 
-MIN_DFLOP = 300
+MIN_DFLOP = 360
 
 
 class GpuCatcher:
 
-    def __init__(self, addr: str, vast: VastClient):
+    def __init__(self, addr: str, vast: VastClient, theme: int = 1):
         self.addr = addr
-        self.s1 = State(S_STARTED, [f"Frequency in minutes: {FREQUENCY_M}"], self.state_run)
+        self.s_run = State(S_STARTED, [f"Frequency in minutes: {FREQUENCY_M}"], self.state_run)
 #        self.s_buy_miners = State(S_DONE, self.state_completed)
-        self.sm = StateMachine([self.s1])
+        self.sm = StateMachine("GPU Catcher", [self.s_run], theme)
         self.vast = vast
         self.automation = Automation(vast)
-        self.previous_time_tick = datetime.now()
+        self.next_trigger = datetime.now()
 
 
     def get_state_machine(self):
@@ -43,14 +43,12 @@ class GpuCatcher:
 
     def state_run(self, time_tick: datetime) -> State:
 
-        diff = time_tick.timestamp() - self.previous_time_tick.timestamp()
-        print("Jaha: ", str(diff/60))
+        if time_tick.timestamp() > self.next_trigger.timestamp():
 
-        if diff > 50+60:
-            self.previous_time_tick = time_tick
             self.buy_cheap_a5000()
+            self.next_trigger = time_tick + timedelta(minutes=3)
 
-        return self.s1
+        return self.s_run
 
 
     def buy_cheap_a5000(self):
@@ -65,7 +63,7 @@ class GpuCatcher:
         bought_instances = []
 
         if len(offers) == 0:
-            print(Field.attention(f"No offers above required flops per dph found: {MIN_DFLOP}"))
+            log.warning(f"No offers above required flops per dph found: {MIN_DFLOP}")
         else:
             for offer in offers:
                 #                        best_offer: VastOffer = offers
@@ -74,7 +72,7 @@ class GpuCatcher:
                 price = price * 1.02
 
                 if offer.flops_per_dphtotal > MIN_DFLOP:
-                    print(Field.attention(f"Creating instance: {offer.id}"))
+                    log.warning(f"Creating instance: {offer.id}")
                     created_id = self.vast.create_instance(self.addr, offer.id, price)
                     bought_instances.append(created_id)
 
@@ -82,5 +80,5 @@ class GpuCatcher:
 
 
     def print_attention(self, info: str):
-        text = self.sm.next_state.name + ": " + info
-        print(f.format(text))
+        text = self.sm.state.name + ": " + info
+        log.warning(text)

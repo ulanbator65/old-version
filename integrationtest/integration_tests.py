@@ -1,8 +1,10 @@
 
 from Field import Field
+from VastClient import VastClient
 import XenBlocksCache
 from db.DbTest import DbTest
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
+from OfflineMinerManager import OfflineMinerManager
 from constants import *
 from datetime import datetime
 from statemachine.State import State
@@ -13,12 +15,16 @@ fgreen = Field(GREEN)
 
 def run_all_tests():
     print(fgreen.format("Integration tests started..."))
-    test_state_machine()
     test_vast_deserialization()
-    test_xenblocks_wallet_history()
-#    test_xenblocks_cache()
+#    test_xenblocks_wallet_history()
     test_db()
     print(fgreen.format("Integration tests completed successfully!"))
+
+
+def run_tests_part2():
+#    OfflineMinerManager(VastClient()).test()
+    test_state_machine()
+    test_xenblocks_cache()
 
 
 def state1(time_tick):
@@ -35,13 +41,13 @@ def test_state_machine():
     s1: State = State("S1", [], state1)
     s2: State = State("S2", [], state2)
 
-    sm = StateMachine([s1, s2])
+    sm = StateMachine("Test State Machine", [s1, s2])
     sm.execute(datetime.now())
-    if sm.next_state.name != "S2":
+    if sm.state.name != "S2":
         raise Exception("Expected state S2!")
 
     sm.execute(datetime.now())
-    if sm.next_state.name != "S1":
+    if sm.state.name != "S1":
         raise Exception("Expected state S1!")
 
 
