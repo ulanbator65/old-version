@@ -8,8 +8,8 @@ from Field import Field
 from Automation import Automation
 import config
 from constants import *
-from ui import text_color
-import ui
+from input import text_color
+import input
 
 
 class BuyMenu:
@@ -100,7 +100,7 @@ class BuyMenu:
 
 
     def purchase_offer(self, offer: VastOffer):
-        confirm = ui.get_choice("\nConfirm purchase? (y/n): ").lower()
+        confirm = input.get_choice("\nConfirm purchase? (y/n): ").lower()
 
         if confirm.startswith('y'):
             result = self.create_instance(offer)

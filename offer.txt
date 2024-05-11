@@ -12,3 +12,18 @@ MQTT_TOPIC = os.getenv('MQTT_TOPIC', 'mining/+/stats')
 
 
 
+Offers: [
+{'ask_contract_id': 9355269, 'bundle_id': 1585372506, 'bundled_results': 15532, 'bw_nvlink': 0.0, 'compute_cap': 860, 'cpu_arch': 'amd64', 'cpu_cores': 40, 'cpu_cores_effective': 10.0, 'cpu_ghz': 3.0, 'cpu_name': 'Xeon® Silver 4114 ', 'cpu_ram': 32143, 'credit_discount_max': 0.4, 'cuda_max_good': 11.6, 'direct_port_count': 25, 'discount_rate': 0.0, 'discounted_dph_total': 0.04104166666666667, 'discounted_hourly': 0.0, 'disk_bw': 496.0, 'disk_name': 'Samsung SSD 860', 'disk_space': 76.7, 'dlperf': 55.58152739347337, 'dlperf_per_dphtotal': 1354.27071821661, 'dph_base': 0.04, 'dph_total': 0.04104166666666667, 'dph_total_adj': 0.04104166666666667, 'driver_vers': None, 'driver_version': '510.47.03', 'duration': 1820007.9389967918, 'end_date': 1717195869.0, 'external': None,
+'flops_per_dphtotal': 1341.3256446700507, 'geolocation': 'Washington, US', 'geolocode': 433199645, 'gpu_arch': 'nvidia', 'gpu_display_active': False, 'gpu_frac': 0.25, 'gpu_ids': [38885, 38886], 'gpu_lanes': 16, 'gpu_mem_bw': 630.3, 'gpu_name': 'RTX A5000', 'gpu_ram': 24564, 'gpu_total_ram': 49128, 'has_avx': 1, 'host_id': 11885, 'hosting_type': 1, 'hostname': None, 'id': 9355269, 'inet_down': 755.2, 'inet_down_cost': 0.0, 'inet_up': 523.8, 'inet_up_cost': 0.0, 'instance': {'discountTotalHour': 0, 'discountedTotalPerHour': 0.0010416666666666664, 'diskHour': 0.0010416666666666664, 'gpuCostPerHour': 0, 'totalHour': 0.0010416666666666664}, 'internet_down_cost_per_tb': 0.0, 'internet_up_cost_per_tb': 0.0, 'is_bid': False, 'logo': '/static/logos/vastai_small2.png',
+'machine_id': 9874,
+'min_bid': 0.04, 'mobo_name': 'S7109GM2NR', 'num_gpus': 2, 'os_version': '18.04', 'pci_gen': 3.0, 'pcie_bw': 11.7, 'public_ipaddr': '63.135.50.11', 'reliability': 0.992923, 'reliability2': 0.992923, 'reliability_mult': 0.9338573, 'rentable': True, 'rented': False, 'rn': 1, 'score': 1037.4450159578264,
+'search': {'discountTotalHour': 0, 'discountedTotalPerHour': 0.04104166666666667, 'diskHour': 0.0010416666666666664, 'gpuCostPerHour': 0.04, 'totalHour': 0.04104166666666667}, 'start_date': 1715371760.596466, 'static_ip': True, 'storage_cost': 0.14999999999999997, 'storage_total_cost': 0.0010416666666666664, 'time_remaining': '', 'time_remaining_isbid': '',
+'total_flops': 55.05024, 'vericode': 1, 'verification': 'verified', 'vram_costperhour': 0.008754274548119199, 'webpage': None},
+
+
+
+
+
+
+
+

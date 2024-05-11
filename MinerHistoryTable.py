@@ -1,11 +1,12 @@
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from prettytable.colortable import *
 
 from VastClient import VastClient
 from VastInstance import VastInstance
 from MinerStatistics import MinerStatistics
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
+from db.HistoryManager import HistoryManager
 from MinerGroup import MinerGroup
 from Balance import Balance
 from Field import Field
@@ -13,7 +14,7 @@ import XenBlocksCache as Cache
 from XenBlocksWallet import XenBlocksWallet
 from Time import Time
 
-from ui import *
+from input import *
 
 addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower(),
                    "0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23".lower(),
@@ -29,26 +30,32 @@ class MinerHistoryTable:
         self.vast = vast
         self.vast_balance: Balance = None
         self.vast_instances = None
+        self.history = HistoryManager()
         self.db = XenBlocksWalletHistoryRepo()
         self.snapshot_time: datetime = datetime.now()
         # Statistics
         self.tot_hashrate = 0
         self.tot_hashrate_per_dollar = 0
         self.tot_gpus = 0
-        self.tot_cost: float = 0
+        self.tot_active_gpus = 0
+        self.tot_cost_ph: float = 0
+        self.actual_cost_ph: float = 0
         self.tot_block: int = 0
+        self.tot_block2: int = 0
         self.tot_super: int = 0
         self.tot_XUNI: int = 0
         self.tot_block_rate1: float = 0
         self.tot_block_rate2: float = 0
         self.tot_block_per_day: float = 0
-        self.tot_block_cost: float = 0
-        self.tot_block_cost_3h: float = 0
+        self.tot_block_cost1: float = 0
+        self.tot_block_cost2: float = 0
+        self.tot_block_cost_d: float = 0
+        self.average_dflop: int = 0
         self.all_blocks = 0
         self.miner_groups: list[MinerGroup] = []
 
 
-    def load_miners(self):
+    def load_miner_groups(self):
         self.vast_instances = self.vast.get_instances()
 
 #        addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower()]
@@ -72,90 +79,16 @@ class MinerHistoryTable:
 
 
     def create_miner_group(self, addr: str, timestamp_s: int) -> MinerGroup:
-        balance_usd: float = self.vast.get_vast_balance()
-        print("Balance>>>", balance_usd)
 
         vast_instances = self.get_instances_for_address(addr)
-
         balance = Cache.get_wallet_balance(addr, timestamp_s)
-        if balance:
-            self.save_historic_data(balance)
 
-            timestamp_s = Time.now().subtract_hours(25).timestamp
-            balance_history = self.db.get_history(addr, int(timestamp_s))
-
-            return MinerGroup(balance, balance_history, vast_instances)
-
-        return MinerGroup(balance, None, vast_instances)
-
-
-    def select_snapshot_from_history(self, history: list[XenBlocksWallet], age_hours: int) -> XenBlocksWallet:
-
-        timestamp_s = Time.now().subtract_hours(age_hours).timestamp
-
-        for h in history:
-            print(datetime.fromtimestamp(h.timestamp_s))
-            if h.timestamp_s < timestamp_s:
-                return h
-
-        return None
+        return MinerGroup(balance, vast_instances)
 
 
     def print(self):
-        self.load_miners()
-#        self.save_miner_stats()
+        self.load_miner_groups()
         self.print_table()
-
-
-    def update_balance_history(self, timestamp_s: int):
-        for addr in addr_list:
-            balance = Cache.get_wallet_balance(addr, timestamp_s)
-            if balance:
-                self.save_historic_data(balance)
-
-
-    def save_historic_data(self, snapshot: XenBlocksWallet, min_diff_minutes: int = 20) -> bool:
-
-        balance_usd: float = self.vast.get_vast_balance()
-        print("Balance>>>", balance_usd)
-
-        # Save to DB once per hour at the most
-        latest_snapshot = self.db.get_latest_version(snapshot.addr)
-
-        if latest_snapshot:
-            diff_seconds = (snapshot.timestamp_s - latest_snapshot.timestamp_s)
-            diff_minutes = diff_seconds / 60
-            print("Diff in minutes: " + str(int(diff_minutes)))
-
-            if diff_minutes > min_diff_minutes:
-                self.db.create(snapshot)
-                print(ORANGE + f"Saved to DB: {snapshot.to_str()}" + RESET)
-                return True
-        else:
-            self.db.create(snapshot)
-            return True
-
-        return False
-
-
-    def _block_rate(self, mg: MinerGroup, hours: int) -> float:
-        snapshot = mg.select_snapshot_from_history(hours)
-
-        if not mg.balance or not snapshot:
-            return 0.0
-
-        delta_balance = mg.balance.difference(snapshot)
-
-        tdelta = delta_balance.timestamp_s
-        tdelta = tdelta/3600
-        print("Hours: ", hours)
-        print("TDelta: ", tdelta)
-        print("mg: ", delta_balance.block)
-        print("snap: ", delta_balance.block)
-        block_delta = delta_balance.block
-        xuni_delta = delta_balance.xuni
-
-        return block_delta / tdelta
 
 
     def refresh(self):
@@ -182,42 +115,51 @@ class MinerHistoryTable:
         return [self.vast_instances[num - 1].id for num in index]
 
 
-    def reset_hours(self):
-        min_hours = 0.2
-        for instance in self.vast_instances:
-            if instance.miner:
-                if instance.miner.block_cost() > 0.5 or\
-                    (instance.miner.duration_hours > 10 and instance.miner.block < 1) or \
-                        instance.miner.duration_hours > min_hours:
-
-                    instance.reset_hours()
-
-
     def print_table(self):
-        delta_hours1 = 1.2
-        delta_hours2 = 3.0
+        delta_hours1 = 1.3
+        delta_hours2 = 6.0
         table: ColorTable = ColorTable(theme=THEME1)
-        header = ["Address", "GPUs", "Cost/h", "Effect", "Hours", "BLK/h", "$/BLK", "$/BLK/3h", "BLK/3h", "BLK/d", "BLK", "SUP", "XUNI", "Total"]
-        table.field_names = header
+        header = ["Address", "GPUs", "Cost", "USD/h", "DFLOP", "Effect", "Hours", "BLK/h", "BLK/3h", "BLK/d", "$/BLK", "$/BLK/3h", "$/BLK/d", "BLK", "SUP", "XUNI", "Total"]
+        table.field_names = self.header_with_color(header)
         table.align = "r"
         table.float_format = ".2"
 
+        self.tot_active_gpus = 0
         self.tot_gpus = 0
-        self.tot_cost = 0
+        self.tot_cost_ph = 0
         self.tot_block = 0
+        self.tot_block2 = 0
         self.tot_super = 0
         self.tot_XUNI = 0
         self.tot_block_rate1 = 0
         self.tot_block_rate2 = 0
-        self.tot_block_cost = 0
+        self.tot_block_cost1 = 0
+        self.average_dflop = 0
         self.all_blocks = 0
 
+        now = int(datetime.now().timestamp())
+
+        historic_balances1 = get_balances(now, delta_hours1, delta_hours1 + 0.8)
+        historic_balances2 = get_balances(now, delta_hours2, delta_hours2 - 1)
+        historic_balances_day = get_balances(now, 24, 7)
+
+        vast_balance: float = self.vast.get_vast_balance()
         idx = 1
         for mg in self.miner_groups:
-            delta_1: XenBlocksWallet = mg.get_delta(delta_hours1)
-            delta_2: XenBlocksWallet = mg.get_delta(delta_hours2)
 
-            row = self.get_row(idx, mg, delta_1, delta_2)
+            delta_1: XenBlocksWallet = None
+            if historic_balances1:
+                delta_1: XenBlocksWallet = mg.balance.difference(historic_balances1.get_for_addr(mg.id))
+
+            delta_2: XenBlocksWallet = None # mg.get_delta_new(now, delta_hours2)
+            if historic_balances2:
+                delta_2 = mg.balance.difference(historic_balances2.get_for_addr(mg.id))
+
+            delta_day: XenBlocksWallet = None # mg.get_delta_new(now, 24)
+            if historic_balances_day:
+                delta_day = mg.balance.difference(historic_balances_day.get_for_addr(mg.id))
+
+            row = self.get_row(idx, mg, delta_1, delta_2, delta_day)
 
             if delta_1:
                 self.tot_block += delta_1.block
@@ -225,10 +167,18 @@ class MinerHistoryTable:
                 self.tot_XUNI += delta_1.xuni
                 self.tot_block_rate1 += delta_1.block / (delta_1.timestamp_s / 3600)
 
-            self.tot_gpus += mg.active_gpus
-            self.tot_cost += mg.cost_ph
+            if delta_2:
+                self.tot_block2 += delta_2.block
+                self.tot_block_rate2 += delta_2.block / (delta_2.timestamp_s / 3600)
+
+            if delta_day:
+                self.tot_block_per_day += delta_day.block
+
+            self.tot_active_gpus += mg.active_gpus
+            self.tot_cost_ph += mg.cost_ph
             self.all_blocks += mg.get_block_count_for_address()
-            self.tot_block_per_day += mg.block_rate_per_day()
+            self.average_dflop += mg.dflop
+
 #            self.tot_block_rate += stats.block_rate(0.1)
 
             color = self.get_row_color(mg, delta_1)
@@ -239,16 +189,32 @@ class MinerHistoryTable:
         table.add_row(separator)
 
         # Totals row
-        self.tot_hashrate_per_dollar = self.tot_hashrate / self.tot_cost if self.tot_cost > 0 else 0
-        self.tot_block_cost = self.tot_cost / self.tot_block_rate1 if self.tot_block_rate1 > 0 else 0
-        self.tot_block_cost_3h = self.tot_cost / self.tot_block_rate2 if self.tot_block_rate2 > 0 else 0
-#        self.tot_block_cost = total.cost_per_hour / total.block_rate()
+        if historic_balances1:
+            actual_cost = (historic_balances1.vast_balance - vast_balance)
+            hours = (now - historic_balances1.timestamp)  / 3600
+            self.actual_cost_ph = actual_cost / hours
+
+        self.tot_block_cost1 = self.actual_cost_ph / self.tot_block_rate1 if self.tot_block_rate1 > 0 else 0
+        self.tot_hashrate_per_dollar = self.tot_hashrate / self.tot_cost_ph if self.tot_cost_ph > 0 else 0
+#        self.tot_block_cost2 = self.tot_cost_ph / self.tot_block_rate2 if self.tot_block_rate2 > 0 else 0
+
+        if historic_balances2:
+            cost2 = (historic_balances2.vast_balance - vast_balance)
+            print(DARK_PINK, "Delta Time:  ",  str(round(((now - historic_balances2.timestamp)/3600), 1)))
+            print(DARK_PINK, "Delta USD:   ",  round(cost2, 1))
+            print(DARK_PINK, "Delta Block: ",  self.tot_block2)
+            self.tot_block_cost2 = cost2 / self.tot_block2 if self.tot_block2 > 0 else 0
+
+        if historic_balances_day:
+            self.tot_block_cost_d = (historic_balances_day.vast_balance - vast_balance) / self.tot_block_per_day if self.tot_block_per_day > 0 else 0
+
+#        self.tot_block_cost1 = total.cost_per_hour / total.block_rate()
         row = self.get_totals_row()
         self.add_row(table, row, GOLD)
 
         print()
         print(table)
-        time = datetime.now().strftime('%Y-%m-%d %H:%M')
+        time = datetime.now().strftime('%H:%M:%S')
         difficulty = Cache.get_difficulty()
         print()
         f = Field(GOLD)
@@ -266,29 +232,40 @@ class MinerHistoryTable:
         table.add_row(formatted_row)
 
 
-    def get_row(self, row_nr: int, mg, delta_1: XenBlocksWallet, delta_2: XenBlocksWallet) -> list:
+    def get_row(self,
+                row_nr: int,
+                mg,
+                delta_1: XenBlocksWallet,
+                delta_2: XenBlocksWallet,
+                delta_day: XenBlocksWallet) -> list:
+
         if delta_1:
             delta_1.cost_per_hour = mg.cost_ph
             block_rate1 = delta_1.block_rate()
             block_cost = delta_1.block_cost()
-#            block_cost = mg.cost_ph / block_rate1 if block_rate1 > 0 else 0.0
-            block_rate2 = delta_2.block_rate()
+
+            block_rate2 = delta_2.block_rate() if delta_2 else 0.0
             block_cost_2 = mg.cost_ph / block_rate2 if block_rate2 > 0 else 0.0
-            block_per_day = mg.block_rate_per_day()
+
+            block_per_day = delta_day.block if delta_day else 0
+            block_cost_day = mg.cost_ph / block_per_day if block_per_day > 0 else 0.0
 
             return [
                 str(mg.id[0:8]+"..."),
-                f"{mg.active_gpus}",
+                f"{mg.active_gpus}/{mg.total_gpus}",
                 f"${mg.cost_ph:.3f}",
-                f"{int(mg.effect()*100):} %",
-                f"{delta_1.duration_hours():.1f}",
+                "",
+                f"{mg.dflop:.0f}",
                 # 5
+                f"{int(calc_effect(mg.active_gpus, delta_1.block)):} %",
+                f"{delta_1.duration_hours():.1f}",
                 to_string(block_rate1),
-                f"${block_cost:.3f}",
-                f"${block_cost_2:.3f}",
                 to_string(block_rate2),
                 to_string(block_per_day),
                 # 10
+                block_cost_to_string(block_cost),
+                block_cost_to_string(block_cost_2),
+                "",
                 str(delta_1.block),          # 7
                 str(delta_1.sup),             # 15
                 str(delta_1.xuni),
@@ -297,12 +274,12 @@ class MinerHistoryTable:
         else:
             return [
                 str(mg.id[0:8]+"..."),
-                f"{mg.active_gpus}",
+                f"{mg.active_gpus}/{mg.total_gpus}",
                 f"${mg.cost_ph:.3f}",
-                f"{int(mg.effect()*100):} %",
                 "",
+                f"{mg.dflop:.0f}",
                 # 5
-                "",
+                f"{int(calc_effect(mg.active_gpus, 0)):} %",
                 "",
                 "",
                 "",
@@ -311,25 +288,33 @@ class MinerHistoryTable:
                 "",
                 "",
                 "",
+                "",
+                "",
+                "",
                 str(mg.get_block_count_for_address())
             ]
 
 
     def get_totals_row(self) -> list:
+#        effect = (self.tot_block / self.tot_active_gpus) * 100 if self.tot_active_gpus > 0 else 0
+        effect = calc_effect(self.tot_active_gpus, self.tot_block)
         return [
             # Vast instance
             "",
-            f"{self.tot_gpus}",
-            f"${self.tot_cost:.2f}",
-            "",
-            "",
+            f"{self.tot_active_gpus}",
+            f"${self.tot_cost_ph:.2f}",
+            f"${self.actual_cost_ph:.2f}",
+            f"{int(self.average_dflop/2)}",
             # 5
+            f"{int(effect)} %",
+            "",
             f"{self.tot_block_rate1:.1f}",
-            f"${self.tot_block_cost:.3f}",
-            f"${self.tot_block_cost_3h:.3f}",
-            f"{self.tot_block_rate2:.1f}",
-            f"{self.tot_block_per_day:.0f}",
+            to_string(self.tot_block_rate2),
+            f"{self.tot_block_per_day}",
             # 10
+            f"${self.tot_block_cost1:.3f}",
+            block_cost_to_string(self.tot_block_cost2),
+            block_cost_to_string(self.tot_block_cost_d),
             f"{self.tot_block}",
             f"{self.tot_super}",
             f"{self.tot_XUNI}",
@@ -355,29 +340,23 @@ class MinerHistoryTable:
             "-"*len(header[10]),
             "-"*len(header[11]),
             "-"*len(header[12]),
-            "-"*len(header[13])
+            "-"*len(header[13]),
+            "-"*len(header[14]),
+            "-"*len(header[15]),
+            "-"*len(header[16])
         ]
+
+
+    def header_with_color(self, header: list) -> list:
+        new_header = header.copy()
+        new_header[6] = GOLD + new_header[6]
+        new_header[9] = GOLD + new_header[9]
+
+        return new_header
 
 
     def justify_row(self, row: list):
-        return [
-            row[0],
-            row[1],
-            row[2].rjust(6),
-            row[3].rjust(5),
-            row[4].rjust(5),
-            # 5
-            row[5].rjust(8),
-            row[6].rjust(5),
-            row[7],
-            row[8].rjust(3),
-            row[9],
-            # 10
-            row[10],
-            row[11],
-            row[12],
-            row[13],
-        ]
+        return row
 
 
     def get_rented_since(self, ins: MinerStatistics):
@@ -403,7 +382,7 @@ class MinerHistoryTable:
 
     def get_row_color(self, mg: MinerGroup, delta: XenBlocksWallet):
 
-        if mg.active_gpus == 0 and mg.block_rate_per_hour(1) < 0.01:
+        if mg.active_gpus == 0:
             return GRAY
 
         elif mg.active_gpus == 0 or mg.get_block_count_for_address() == 0:
@@ -421,8 +400,46 @@ class MinerHistoryTable:
         return C_OK
 
 
+def get_balances(now: float, age_in_hours: float, fallback_age: float):
+    t0 = datetime.fromtimestamp(now)
+    t1 = t0 - timedelta(minutes=age_in_hours*60)
+    fallback = t0 - timedelta(minutes=fallback_age*60)
+
+    print("T0: ", str(int(t0.timestamp())))
+    print("T1: ", str(int(t1.timestamp())))
+    print("Fallback: ", str(int(fallback.timestamp())))
+#    print("Found Timestamp: ", str(balances.timestamp))
+
+    return HistoryManager().get_balances_with_fallback(int(t1.timestamp()), int(fallback.timestamp()))
+
+
+def duration_hours(t1, t2):
+    return (t1 - t2) / 3600
+
+
 def to_string(value: float) -> str:
     if value < 0.01:
         return "-"
     return f"{value:.2f}"
 
+
+def block_cost_to_string(value: float):
+    if value < 0.01:
+        return "-"
+    return f"${value:.3f}"
+
+
+#
+#      Effect calculationn based on how many blocks each gpu produces per hour
+#
+def calc_effect(gpus: int, block: int) -> float:
+    if gpus == 0:
+        return 0.0
+
+    #  One gpu is estimated to produce x nr of blocks per hour,
+    #  which equals the effect of 100 %
+    #  Example: 0.8 block per gpu at difficulty 90K
+    estimated_block_per_gpu = 0.8
+
+    block_per_gpu = (100 * block / (gpus * estimated_block_per_gpu))
+    return block_per_gpu

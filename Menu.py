@@ -1,4 +1,4 @@
-import ui
+import input
 from Automation import *
 
 BORDER_WIDTH = 4*20
@@ -18,7 +18,7 @@ class Menu:
         self.print()
 
         f = Field(LIGHT_CYAN)
-        choice = ui.get_choice(f.center("Enter your choice: ", self.inner_width))
+        choice = input.get_choice(f.center("Enter your choice: ", self.inner_width))
         print(f.center("Choice = " + choice, self.inner_width))
 
         return choice

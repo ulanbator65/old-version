@@ -3,16 +3,15 @@ from datetime import datetime
 
 
 class XenBlocksWallet:
-    def __init__(self, addr: str, rank: int, block: int, sup: int, xuni: int, timestamp: float, cost_ph: float):
+    def __init__(self, addr: str, rank: int, block: int, sup: int, xuni: int, timestamp: int, cost_ph: float):
 
         self.addr: str = addr
         self.rank: int = rank
         self.block: int = block
         self.sup: int = sup
         self.xuni: int = xuni
-        self.timestamp_s: int = int(timestamp)
+        self.timestamp_s: int = timestamp
         self.cost_per_hour: float = round(cost_ph, 3)
-        print("Cost: ", self.cost_per_hour)
 
 
     def to_str(self):
@@ -46,3 +45,4 @@ class XenBlocksWallet:
     def block_cost(self):
         block_rate = self.block_rate()
         return self.cost_per_hour / block_rate if block_rate > 0 else 0.0
+

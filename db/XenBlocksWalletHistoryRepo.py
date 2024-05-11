@@ -7,12 +7,19 @@ from config import HISTORY_DB
 from Field import Field
 from constants import *
 
-CREATE_TABLE = "CREATE TABLE IF NOT EXISTS miner_history (id STRING, timestamp INTEGER, block INTEGER, xuni INTEGER, sup INTEGER, cost NUMBER)"
-SELECT = "SELECT * FROM miner_history WHERE id = ? ORDER BY timestamp DESC;"
-SELECT_FROM_TIMESTAMP = "SELECT * FROM miner_history WHERE id = ? and timestamp > ? ORDER BY timestamp DESC;"
+
+CREATE_TABLE = "CREATE TABLE IF NOT EXISTS miner_history (timestamp INTEGER, id STRING, block INTEGER, xuni INTEGER, sup INTEGER, cost NUMBER)"
+#               "PRIMARY KEY (timestamp, id))"
+
+SELECT = "SELECT * FROM miner_history WHERE id = ? ORDER BY timestamp DESC"
+SELECT_TIMESTAMP = "SELECT * FROM miner_history WHERE timestamp = ?"
+SELECT_FROM_TIMESTAMP = "SELECT * FROM miner_history WHERE timestamp > ? ORDER BY timestamp DESC"
 INSERT = "INSERT INTO miner_history VALUES(?, ?, ?, ?, ?, ?)"
-DELETE = "DELETE FROM miner_history WHERE id=?"
+DELETE = "DELETE FROM miner_history WHERE timestamp = ?"
 DELETE_ALL = "DELETE FROM miner_history"
+
+COUNT = "SELECT count(*) FROM miner_history;"
+
 
 error = Field(RED)
 
@@ -27,8 +34,9 @@ class XenBlocksWalletHistoryRepo:
         self.db.execute(CREATE_TABLE)
 
 
-    def get_nr_of_rows(self, addr: str):
-        return len(self.get(addr))
+    def get_nr_of_rows(self, addr: str) -> int:
+        return 0
+#        return len(self.get(addr))
 
 
     def create(self, snapshot: XenBlocksWallet) -> bool:
@@ -39,7 +47,7 @@ class XenBlocksWalletHistoryRepo:
         if snapshot.sup == 0:
             return False
 
-        params: tuple = (snapshot.addr, snapshot.timestamp_s, snapshot.block, snapshot.sup, snapshot.xuni, snapshot.cost_per_hour)
+        params: tuple = (snapshot.timestamp_s, snapshot.addr, snapshot.block, snapshot.sup, snapshot.xuni, snapshot.cost_per_hour)
 
         if snapshot.sup == 0 and snapshot.block > 1600:
             # A bug in XenBlocks endpoint where super count is sometimes returned as zero
@@ -48,20 +56,33 @@ class XenBlocksWalletHistoryRepo:
 #            print(str(params))
             previous = self.get_latest_version(snapshot.addr)
 
-            params = (snapshot.addr, snapshot.timestamp_s, snapshot.block, previous.sup, snapshot.xuni, snapshot.cost_per_hour)
+            params = (snapshot.timestamp_s, snapshot.addr, snapshot.block, previous.sup, snapshot.xuni, snapshot.cost_per_hour)
 
-        return self.db.insert(INSERT, params)
+        pre_count = self.count()
+        result = self.db.insert(INSERT, params)
+        post_count = self.count()
+
+        if not post_count == pre_count+1:
+            raise Exception("WTF!!!!")
+
+        return True
 
 
-    def get_for_timestamp(self, addr: str, timestamp: int) -> XenBlocksWallet:
-        result = self.get_history(addr, timestamp)
+    def get_for_timestamp(self, timestamp: int) -> list[XenBlocksWallet]:
+        params: tuple = (timestamp,)
+        result = self.db.select(SELECT_TIMESTAMP, params)
 
-        return result[0] if len(result) > 0 else None
+        balances: list[XenBlocksWallet] = []
+
+        for x in result:
+            balances.append(self.map_row(x))
+
+        return balances
 
 
-    def get_history(self, addr: str, timestamp: int) -> list[XenBlocksWallet]:
-        params: tuple = (addr, timestamp)
-        result = self.db.select(SELECT_FROM_TIMESTAMP, params)
+    def get_history(self, addr: str) -> list[XenBlocksWallet]:
+        params: tuple = (addr,)
+        result = self.db.select(SELECT, params)
 
         history: list[XenBlocksWallet] = []
 
@@ -77,15 +98,19 @@ class XenBlocksWalletHistoryRepo:
         return self.map_row(result[0]) if len(result) > 0 else None
 
 
-    def get(self, addr: str, max_count: int = 99) -> list[tuple]:
-        params: tuple = (addr,)
-        result = self.db.select(SELECT, params)
-        return result[0:max_count] if len(result) >= max_count else result
+#    def get(self, addr: str, max_count: int = 99) -> list[tuple]:
+#        params: tuple = (addr,)
+#        result = self.db.select(SELECT, params)
+#        return result[0:max_count] if len(result) >= max_count else result
+
+
+    def count(self):
+        return self.db.execute(COUNT)[0][0]
 
 
     def map_row(self, row: tuple) -> XenBlocksWallet:
-        addr: str = row[0]
-        timestamp_s: int = row[1]
+        timestamp_s: int = row[0]
+        addr: str = row[1]
         block: int = row[2]
         sup: int = row[3]
         xuni: int = row[4]
@@ -93,8 +118,8 @@ class XenBlocksWalletHistoryRepo:
         return XenBlocksWallet(addr, 0, block, sup, xuni, timestamp_s, cost)
 
 
-    def __delete(self, id: str):
-        self.db.delete(DELETE, (id,))
+    def delete(self, timestamp: int):
+        self.db.delete(DELETE, (timestamp,))
 
     def delete_all(self):
         self.db.execute(DELETE_ALL)

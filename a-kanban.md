@@ -1,6 +1,12 @@
 
 Backlog
 ---------------
+Save balance from VAST to history and use it for cost calculations
+
+Better calculation of effect for groups of miners
+
+Table for miner groups per wallet address showing statistics from historic data
+
 Auto-bid: set a min DFLOP limit. When an instance is lost - automatically increase bid price until DFLOP limit is reached.
 
 Calculate cost for each leg in XenBlocks history using saved cost per hour

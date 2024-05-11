@@ -1,6 +1,7 @@
 
 from Field import Field
 from constants import *
+import logging
 
 f = Field(GRAY)
 f_error = Field(RED)
@@ -12,7 +13,7 @@ def info(info: str):
 
 
 def error(info: str):
-    print(f_error.format(info))
+    logging.error(f_error.format(info))
 
 
 def warning(info: str):

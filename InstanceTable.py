@@ -116,8 +116,13 @@ class InstanceTable:
     def sort_on_cost(self):
         self.instances = sorted(self.instances, key=lambda inst: (inst.block_cost()))
 
+
     def get_id_for_row(self, row_nr) -> int:
-        return self.instances[row_nr - 1].id
+        return self.get_instance_for_row(row_nr).id
+
+
+    def get_instance_for_row(self, row_nr) -> VastInstance:
+        return self.instances[row_nr - 1]
 
 
     def get_ids_for_index(self, index: list) -> list:

@@ -16,11 +16,13 @@ class VastInstance:
 #        print(json)
         self.miner_repo: MinerStatisticsRepo = MinerStatisticsRepo()
         self.json: dict = json
-        self.is_managed: bool = not self._is_manual_instance(json.get('image_uuid'))
+        self.image = json.get('image_uuid')
+        self.is_managed: bool = not self._is_manual_instance()
         self.id: int = json.get('id')
         self.min_bid: float = json.get('min_bid')
         self.start_date = json.get('start_date', None)
         self.duration = json.get('duration', None)
+
 
         self.public_ipaddr = json.get('public_ipaddr', '').strip()
         self.external_port = json.get('ports', {}).get('8080/tcp', [{}])[0].get('HostPort', None)
@@ -31,6 +33,7 @@ class VastInstance:
         self.num_gpus: int = json.get('num_gpus', 0)
         self.total_flops: float = json.get('total_flops', 0)
         self.flops_per_dphtotal: int = int(json.get('flops_per_dphtotal', 0))
+#        self.flops_per_dphtotal = self.total_flops / self.min_bid
         status: str = json.get('actual_status', "none")
         self.actual_status: str = status if status and len(status) > 0 else "none"
         self.rebooted: bool = False
@@ -44,14 +47,16 @@ class VastInstance:
         self.miner: MinerStatistics = None
 
 
-    def _is_manual_instance(self, image: str):
-        return MANUAL_MODE and (image == VAST_IMAGE)
+    def _is_manual_instance(self):
+        return MANUAL_MODE and (self.image == VAST_IMAGE)
 
 
     def reset_hours(self):
         offset_hours = self.get_age_in_hours()
         self.miner.reset_hours(offset_hours)
 
+    def dflop_for_min_bid(self):
+        return self.total_flops / self.min_bid
 
     def get(self, field: str) -> str:
         return self.json.get(field)
@@ -148,7 +153,7 @@ class VastInstance:
 
 
     def get_age_in_hours(self) -> float:
-        return Time.now().get_age_in_hours(self.start_date)
+        return VastInstanceRules.age_in_hours(self.start_date)
 
 
     def print_states(self):
