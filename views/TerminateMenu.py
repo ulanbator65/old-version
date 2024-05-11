@@ -4,7 +4,7 @@ from InstanceTable import InstanceTable
 
 from VastInstanceRules import *
 import constants as const
-import ui
+import input
 import config
 
 
@@ -36,7 +36,7 @@ class TerminateMenu:
                 print(f"Instance ID: {inst.id}")
                 dead_instances.append(inst)
 
-                confirm = ui.get_choice("\nConfirm termination of all identified dead instances? (y/n): ").lower()
+                confirm = input.get_choice("\nConfirm termination of all identified dead instances? (y/n): ").lower()
 
                 if confirm.startswith('y'):
                     self.vast.kill_instance(inst.id)
@@ -48,7 +48,7 @@ class TerminateMenu:
 
 
     def kill_selected_instance(self, instance_table: InstanceTable):
-        selected_row = input(''"Enter the row number of the instance to kill: ")
+        selected_row = input.get_choice(''"Enter the row number of the instance to kill: ")
 
         if selected_row == const.CH_EXIT:
             print("\nExit menu... ")
@@ -59,7 +59,7 @@ class TerminateMenu:
         instance_id = instance_table.get_id_for_row(int(selected_row))
         if instance_id:
             print(f"Instance ID: {instance_id}")
-            confirm = input("\nConfirm termination of selected instance? (y/n): ").lower()
+            confirm = input.get_choice("\nConfirm termination of selected instance? (y/n): ").lower()
 
             if confirm.startswith('y'):
                 self.vast.kill_instance(instance_id)

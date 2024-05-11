@@ -14,7 +14,7 @@ SHOW_MINER_GROUPS = (os.getenv('SHOW_MINER_GROUPS') == 'True')
 RUN_STATE_MACHINES = (os.getenv('RUN_STATE_MACHINES') == 'True')
 
 DB_NAME = "../database.db"
-HISTORY_DB = "../history-db.db"
+HISTORY_DB = "../history.db"
 
 
 BID_INCREASE_PCT = 0
@@ -31,7 +31,9 @@ def get_int_list(name: str) -> list:
 
 
 # Older configuration, possibly obsolete
-BLACKLIST = get_int_list('BLACKLIST')
+BLACKLIST = [6011840, 9563671, 9355268, 9355256, 9355269, 9355271, 6011841, 9355272]
+
+BLACKLIST2 = get_int_list('BLACKLIST')
 WHITELIST = get_int_list('WHITELIST')
 RESERVED_INSTANCES = get_int_list('RESERVED_INSTANCES')
 

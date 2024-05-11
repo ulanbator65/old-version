@@ -1,9 +1,8 @@
 
 import requests
 from requests import Response
-import logging as log
+import logger as log
 
-from Time import Time
 from XenBlocksWallet import XenBlocksWallet
 from tostring import auto_str
 
@@ -26,10 +25,11 @@ class XenBlocks:
         try:
             response = requests.get(DIFFICULTY_URL, headers=headers)
             response.raise_for_status()
-            return int(response.json().get('difficulty'))
+            return int(response.json().get('difficulty', 0))
 
         except requests.RequestException as e:
-            log.error(f"Error fetching instances: {e}")
+            log.error(f"Error getting difficulty: {e}")
+            return 0
 
 
     def get_xenblocks_balance(self) -> list[str]:
@@ -71,7 +71,8 @@ class XenBlocks:
             return response.content.decode("utf-8")
 
         except requests.RequestException as e:
-            log.error(f"Error fetching instances: {e}")
+            log.error(f"Error getting wallet balances: {e}")
+            return None
 
 
 def map_fields(fields: list, timestamp_s: int) -> XenBlocksWallet:
@@ -80,8 +81,8 @@ def map_fields(fields: list, timestamp_s: int) -> XenBlocksWallet:
     addr = fields[1]
     block = int(fields[2])
     sup = int(fields[3])
-    if sup == 0:
-        log.error("WTF>>>> " + fields[3])
+#    if sup == 0:
+#        log.error("WTF>>>> " + fields[3])
 
     xuni = 0
     return XenBlocksWallet(addr, rank, block, sup, xuni, timestamp_s, 0.0)

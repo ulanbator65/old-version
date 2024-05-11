@@ -4,11 +4,14 @@ from VastClient import VastClient
 import XenBlocksCache
 from db.DbTest import DbTest
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
+from db.HistoryManager import HistoryManager
+from db.VastBalanceHistoryRepo import VastBalanceHistoryRepo
 from OfflineMinerManager import OfflineMinerManager
 from constants import *
-from datetime import datetime
+from datetime import datetime, timedelta
 from statemachine.State import State
 from statemachine.StateMachine import StateMachine
+import integrationtest.history_manager_test as history
 
 fgreen = Field(GREEN)
 
@@ -16,8 +19,9 @@ fgreen = Field(GREEN)
 def run_all_tests():
     print(fgreen.format("Integration tests started..."))
     test_vast_deserialization()
-#    test_xenblocks_wallet_history()
     test_db()
+    history.test_integrity()
+    history.test_vast_balance_history()
     print(fgreen.format("Integration tests completed successfully!"))
 
 
@@ -84,19 +88,6 @@ def test_xenblocks_cache():
     if wallet.rank != 200:
         raise Exception("Wrong rank: " + str(wallet.rank))
 
-
-def test_xenblocks_wallet_history():
-    addr = "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA"
-    history = XenBlocksWalletHistoryRepo().get(addr.lower())
-
-    if len(history) < 1:
-        raise Exception("No history found!")
-
-    max = len(history) - 1 if len(history) < 10 else 9
-    history = history[0:max]
-
-    for h in history:
-        print(to_str(h))
 
 
 def test_db():

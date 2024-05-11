@@ -14,6 +14,7 @@ def get_choice(text: str):
 def text_color(text: str, color=LIGHT_YELLOW):
     return color + text + RESET
 
+
 def display_splash_screen():
     if platform.system() == "Windows":
         os.system('cls')

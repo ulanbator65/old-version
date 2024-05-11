@@ -18,6 +18,7 @@ VIEW_INSTANCE = '1'
 KILL_INSTANCES = '2'
 BUY_INSTANCE = '3'
 REBOOT = '4'
+INSTANCE_INCREASE_BID = '5'
 INCREASE_BID = '6'
 M_EXIT = 'x'
 PURGE_INSTANCES = '44'
@@ -50,8 +51,8 @@ class OfflineMenu:
         items.append("   2. ")
         items.append("   3. ")
         items.append("   4. Reboot")
-        items.append("   5. ")
-        items.append("   6. Increase bid")
+        items.append("   5. Increase bid for instance")
+#        items.append("   6. Increase bid")
         items.append("   Exit (x)")
         return Menu("Manage Offline Miners", items, 50)
 
@@ -66,9 +67,12 @@ class OfflineMenu:
         elif choice == REBOOT:
             self.reboot_instances()
 
+        elif choice == INSTANCE_INCREASE_BID:
+            self.bid_on_instance(self.table)
+
         elif choice == INCREASE_BID:
-#            pass
-            self.automation.increase_bid(self.table.instances, DFLOP_MIN)
+            pass
+#            self.automation.increase_bid(self.table.instances, DFLOP_MIN)
 
         elif choice == M_EXIT or choice == CH_EXIT:
             print("Exiting...")
@@ -81,10 +85,33 @@ class OfflineMenu:
 
 
     def reboot_instances(self):
-        self.table.refresh()
 
         for inst in self.table.instances:
             if inst.is_running():
                 self.vast.reboot_instance(inst.id)
+                time.sleep(5)
 
+
+    def bid_on_instance(self, instance_table: InstanceTable):
+        self.table.print_table()
+
+        selected_row = input.get_choice(''"Enter row number of the instance to increase bid: ")
+
+        if selected_row == CH_EXIT:
+            print("\nExit menu... ")
+            return
+
+        print("\nSelected instance: ", selected_row)
+        instance = instance_table.get_instance_for_row(int(selected_row))
+
+        if instance and instance.is_outbid():
+            print(f"Instance ID: {instance.id}")
+            confirm = input.get_choice(ORANGE + "\nConfirm increase bid for selected instance? (y/n): ").lower()
+
+            if confirm.startswith('y'):
+                self.automation.increase_bid_for_instance(instance, 400)
+            else:
+                print("Operation cancelled.")
+        else:
+            print("No valid instances selected for increasing bid.")
 

@@ -14,12 +14,12 @@ class DbManager:
         return sqlite3.connect(self.db_name)
 
 
-    def select(self, prepared_statement: str, params: tuple) -> list:
+    def select(self, prepared_statement: str, params: tuple) -> list[tuple]:
         with closing(self._open()) as connection:
             return connection.cursor()\
                 .execute(prepared_statement, params).fetchall()
 
-    def select_all(self, sql: str) -> list:
+    def select_all(self, sql: str) -> list[tuple]:
         with closing(self._open()) as connection:
             return connection.cursor() \
                 .execute(sql).fetchall()
@@ -29,6 +29,7 @@ class DbManager:
             connection.cursor().execute(prepared_statement, params)
             connection.commit()
         return True
+
 
     def update(self, prepared_statement: str, params: tuple):
         with closing(self._open()) as connection:
@@ -43,9 +44,22 @@ class DbManager:
 
 
     def execute(self, sql: str):
+        result = None
         with closing(self._open()) as connection:
-            connection.cursor().execute(sql)
+            result = connection.cursor().execute(sql).fetchall()
             connection.commit()
+
+        return result
+
+
+    def execute_statement(self, prepared_statement: str, params: tuple):
+        result = None
+        with closing(self._open()) as connection:
+            result = connection.cursor().execute(prepared_statement, params).fetchall()
+            connection.commit()
+
+        return result
+
 
     def _open(self):
         self.connection = self.open()

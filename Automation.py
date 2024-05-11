@@ -68,13 +68,21 @@ class Automation:
 
 
     def increase_bid_for_instance(self, inst: VastInstance, dflop_min: int, bid_factor=1.02):
-        if inst.is_outbid() and inst.flops_per_dphtotal > dflop_min:
+        if inst.is_outbid() and inst.dflop_for_min_bid() > dflop_min:
 
             print("Found outbid instance: ", inst.id)
-            print("Price: ", inst.cost_per_hour)
+            print("Current Price: ", inst.cost_per_hour)
+            print("Current DFLOP: ", inst.flops_per_dphtotal)
+            print("Bid Price: ", inst.min_bid)
+            print("Bid DFLOP: ", inst.dflop_for_min_bid())
+
             price = inst.cost_per_hour * bid_factor
+#            price = inst.min_bid
             print("Adjusted Price: ", price)
             self.vast.increase_bid(inst.id, price)
+        else:
+            print(f"Is outbid: {inst.is_outbid()}")
+            print(f"Bid DFLOP:  {inst.dflop_for_min_bid()}")
 
 
     def offers_30_series(self) -> list[VastOffer]:

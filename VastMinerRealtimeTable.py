@@ -25,6 +25,8 @@ class VastMinerRealtimeTable:
         self.tot_XUNI: int = 0
         self.tot_block_rate: float = 0
         self.tot_block_cost: float = 0
+        self.tot_gpus: float = 0
+        self.tot_active_gpus: float = 0
 
 
     def total_block_per_day(self) -> float:
@@ -98,7 +100,7 @@ class VastMinerRealtimeTable:
 
     def print_table(self):
         table: ColorTable = ColorTable(theme=THEME1)
-        h = ["#", "Vast ID", "GPU", "Cost/h", "DFlop", "MS", "Ov", "Hash", "Hash/$", "Hours", "BLK/h", "BLK $", "BLK/d", "BLK", "SUP", "XUNI", "Since", "Location", "Status", "Addr"]
+        h = ["#", "Vast ID", "GPUs", "Cost/h", "DFlop", "DFlop Min", "Ov", "Hash", "Hash/$", "Hours", "BLK/h", "BLK $", "BLK/d", "BLK", "SUP", "XUNI", "Since", "Location", "Status", "Addr"]
         table.field_names = h
         table.align = "r"
         table.float_format = ".2"
@@ -121,6 +123,11 @@ class VastMinerRealtimeTable:
             if ins.is_managed and ins.is_running():
                 self.tot_cost += ins.cost_per_hour
                 self.add_miner_stats(ins)
+
+            if ins.is_managed:
+                self.tot_gpus += ins.num_gpus
+                if ins.is_running():
+                    self.tot_active_gpus += ins.num_gpus
 
 #                total.cost_per_hour += ins.cost_per_hour
                 # Miner total stats
@@ -157,7 +164,7 @@ class VastMinerRealtimeTable:
         self.tot_hashrate_per_dollar = self.tot_hashrate / self.tot_cost if self.tot_cost > 0 else 0
         print()
         self.tot_block_cost = self.tot_cost / self.tot_block_rate if self.tot_block_rate > 0 else 0
-#        self.tot_block_cost = total.cost_per_hour / total.block_rate()
+#        self.tot_block_cost1 = total.cost_per_hour / total.block_rate()
         row = self.get_totals_row()
         self.add_row(table, row, GOLD)
 
@@ -201,8 +208,8 @@ class VastMinerRealtimeTable:
             f"${ins.cost_per_hour:.3f}",
             f"{ins.flops_per_dphtotal:.0f}",
             # 5
+            f"{ins.dflop_for_min_bid():.0f}",
             # Miner data
-            miner_status,
             override,
             str(ins.miner.hashrate),
             f"{ins.miner.hashrate_per_dollar():.0f}",
@@ -263,8 +270,8 @@ class VastMinerRealtimeTable:
             str(inst.num_gpus) + " " + str(inst.gpu_name_short),
             f"${inst.cost_per_hour:.3f}",
             f"{inst.flops_per_dphtotal:.0f}",
+            f"{inst.dflop_for_min_bid():.0f}",
             #  Miner data
-            "-",
             "-",
             "-",
             "-",
@@ -289,7 +296,7 @@ class VastMinerRealtimeTable:
             # Vast instance
             "",
             "Totals",
-            "",
+            f"{self.tot_active_gpus}",
             f"${self.tot_cost:.2f}",
             "",
             "",
@@ -312,20 +319,6 @@ class VastMinerRealtimeTable:
         ]
 
 
-    def get_rented_since1(self, ins: VastInstance) -> str:
-        if not ins.start_date:
-            return "N/A"
-
-        start_time: datetime = datetime.fromtimestamp(ins.start_date)
-        tdelta: timedelta = datetime.now() - start_time
-        time_parts: tuple = Time.time_parts(tdelta)
-        days = time_parts[0]
-        hours = time_parts[1]
-
-        return str(days) + "d " + str(hours) + "h"
-#        return str(day) + "d " + str(hour) + "h " + str(min) + "m"
-
-
     def get_rented_since(self, ins: VastInstance) -> str:
         if not ins.start_date:
             return "N/A"
@@ -337,7 +330,6 @@ class VastMinerRealtimeTable:
         hours = time_parts[1]
 
         return str(24*days + hours)
-
 #        return str(round(Time(ins.start_date).get_age_in_hours(0), 1))
 
 

@@ -7,6 +7,7 @@ from views.OfflineMenu import OfflineMenu
 from Menu import *
 from MinerHistoryTable import MinerHistoryTable
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
+from db.HistoryManager import HistoryManager
 from XuniMinerV2 import XuniMinerV2
 from GpuCatcher import GpuCatcher
 from AutoMiner import AutoMiner
@@ -30,7 +31,7 @@ MANAGE_OFFLINE = '4'
 REFRESH_MINER_STATS = '5'
 INCREASE_BID = '6'
 M_RESET = '7'
-SHUTDOWN_NEXT_BLOCK = '8'
+HISTORIC_DATA = '8'
 XUNI_MINER = '9'
 M_EXIT = 'x'
 PURGE_INSTANCES = '44'
@@ -59,12 +60,12 @@ class MainMenu:
                 "0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a"]
 
         timestamp = int(datetime.now().timestamp())
-        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(220, timestamp)
+        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(218, timestamp)
         w1_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[0], timestamp)
         w2_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[1], timestamp)
         w3_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[2], timestamp)
         if rank200:
-            log.info(LIGHT_PINK + "Rank 220: " + rank200.to_str())
+            log.info(LIGHT_PINK + "Rank 218: " + rank200.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w1_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w2_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w3_xuni.to_str())
@@ -91,17 +92,21 @@ class MainMenu:
             self.miner_group_table.print()
 
         if config.RUN_STATE_MACHINES:
-#            sm1 = XuniMinerV2(self.vast, 1).get_state_machine()
-            sm2 = XenblocksHistoryManager(self.miner_group_table, 2).get_state_machine()
-#            sm3 = GpuCatcher(config.ADDR, self.vast, 3).get_state_machine()
-#            sm4 = OfflineMinerManager(self.vast, 3).get_state_machine()
-            sm5 = AutoMiner(self.vast, 1).get_state_machine()
             controller = Controller(self.vast)
-#            controller.add_state_machine(sm1)
-#            controller.add_state_machine(sm2)
-#            controller.add_state_machine(sm3)
-#            controller.add_state_machine(sm4)
-            controller.add_state_machine(sm5)
+
+#            xuni = XuniMinerV2(self.vast, 1).get_state_machine()
+#            gpu = GpuCatcher(config.ADDR, self.vast, 3).get_state_machine()
+#            offline = OfflineMinerManager(self.vast, 3).get_state_machine()
+#            controller.add_state_machine(xuni)
+
+            history = XenblocksHistoryManager(self.vast, HistoryManager(), 2).get_state_machine()
+            controller.add_state_machine(history)
+
+#            controller.add_state_machine(gpu)
+#            controller.add_state_machine(offline)
+
+#            auto = AutoMiner(self.vast, 1).get_state_machine()
+#            controller.add_state_machine(auto)
 
             controller.run()
 
@@ -112,6 +117,7 @@ class MainMenu:
 
     def get_menu(self) -> Menu:
         items = []
+        items.append(" ")
         items.append("   0. Automation")
         items.append("   1. View Running Instances")
         items.append("   2. Kill Instances")
@@ -122,7 +128,7 @@ class MainMenu:
         items.append("   6. Increase bid")
         items.append("   7. Reset hours")
         items.append("   ")
-        items.append("   8. Shutdown when next block is mined")
+        items.append("   8. Historic data")
         items.append("   9. XUNI Miner")
         items.append("   Exit (x)")
         return Menu("Main Menu", items, 50)
@@ -165,8 +171,8 @@ class MainMenu:
             self.table.reset_hours()
             self.main_menu_selection(VIEW_INSTANCE)
 
-        elif choice == SHUTDOWN_NEXT_BLOCK:
-            self.shutdown_next_block()
+        elif choice == HISTORIC_DATA:
+            self.miner_group_table.print()
 
         elif choice == XUNI_MINER:
             pass
