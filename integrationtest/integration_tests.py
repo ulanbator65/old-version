@@ -12,16 +12,22 @@ from datetime import datetime, timedelta
 from statemachine.State import State
 from statemachine.StateMachine import StateMachine
 import integrationtest.history_manager_test as history
+import integrationtest.graph_test as graph_test
 
 fgreen = Field(GREEN)
 
 
 def run_all_tests():
     print(fgreen.format("Integration tests started..."))
+
     test_vast_deserialization()
     test_db()
+
     history.test_integrity()
     history.test_vast_balance_history()
+
+    graph_test.test_all()
+
     print(fgreen.format("Integration tests completed successfully!"))
 
 

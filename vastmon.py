@@ -9,6 +9,10 @@ from VastAiCLI import VastAiCLI
 from views.BuyMenu import BuyMenu
 from views.MainMenu import MainMenu
 from views.TerminateMenu import *
+from statemachine.Controller import Controller
+from XenblocksHistoryManager import XenblocksHistoryManager
+from db.HistoryManager import HistoryManager
+from AutoMiner import AutoMiner
 import app_config as app
 import config as config
 from constants import *
@@ -30,15 +34,36 @@ def main():
 
     # vast = VastClient(config.API_KEY, config.BLACKLIST)
 
-    buy = BuyMenu()
-    terminate = TerminateMenu()
-    main_menu = MainMenu(buy, terminate)
+    vast: VastClient = VastClient(config.API_KEY, config.BLACKLIST)
+
+    buy = BuyMenu(vast)
+    terminate = TerminateMenu(vast)
+    main_menu = MainMenu(buy, terminate, vast)
 
     integration_tests.run_all_tests()
 
     print_config()
 
-    main_menu.start()
+    if config.RUN_STATE_MACHINES:
+        controller = Controller()
+
+        #            xuni = XuniMinerV2(self.vast, 1).get_state_machine()
+        #            gpu = GpuCatcher(config.ADDR, self.vast, 3).get_state_machine()
+        #            offline = OfflineMinerManager(self.vast, 3).get_state_machine()
+        #            controller.add_state_machine(xuni)
+
+        history = XenblocksHistoryManager(vast, HistoryManager(), 2).get_state_machine()
+        controller.add_state_machine(history)
+
+        #            controller.add_state_machine(gpu)
+        #            controller.add_state_machine(offline)
+
+        auto = AutoMiner(vast, 1).get_state_machine()
+        controller.add_state_machine(auto)
+
+        controller.run()
+    else:
+        main_menu.start()
 
 
 def print_config():

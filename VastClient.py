@@ -2,6 +2,8 @@
 import threading
 import requests
 import traceback
+import json
+from datetime import datetime
 
 from VastAiCLI import VastAiCLI
 from VastQuery import VastQuery
@@ -10,6 +12,7 @@ from VastOffer import VastOffer
 from XenBlocks import *
 from Billing import Billing
 import MinerDataCache as MinerCache
+from db.DbCache import DbCache
 from Field import Field
 from constants import *
 from tostring import auto_str
@@ -45,9 +48,10 @@ class VastClient:
     def get_instances(self) -> list[VastInstance]:
         instances = []
         try:
-            cached_response = self.__get_cached_response()
-            cached_response.raise_for_status()
-            data = cached_response.json()
+            cached_response: dict = self.get_cached_instances()
+#            cached_response.raise_for_status()
+#            data = json.loads(cached_response) # cached_response.json()
+            data = cached_response
             rows = data.get('instances', [])
 
             if len(rows) < 1:
@@ -81,6 +85,7 @@ class VastClient:
         contract_id = int(response.get('new_contract'))
         log.warning(f"Created instance for offer id {instance_id}! Contract id = {contract_id}")
         return contract_id
+
 
     def increase_bid(self, instance_id: int, new_price: float):
         cmd = VastAiCLI(self.api_key)
@@ -197,7 +202,7 @@ class VastClient:
             inst.miner_status = "offline"
 #            inst.miner = None
 #            traceback.print_exc()
-            log.info(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.id}: {e}")
+#            log.info(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.id}: {e}")
 
 
     def get_miner_statistics_delete(self, inst: VastInstance, stats):
@@ -238,11 +243,27 @@ class VastClient:
         return False
 
 
+    def get_cached_instances(self) -> dict:
+        key = "VastInstances"
+        cach_entry = DbCache().get(key)
+
+        age_seconds = datetime.now().timestamp() - cach_entry[1]
+        if age_seconds > 40:
+            response = self.__get_cached_response()
+            DbCache().update(key, response.text)
+            return json.loads(response.text)
+
+        return json.loads(cach_entry[2])
+
+
     @cached(cache=TTLCache(maxsize=1, ttl=10*SECONDS))
     def __get_cached_response(self) -> requests.Response:
         print("VAST instance cache loaded...")
+
         headers = {"Authorization": f"Bearer {self.api_key}"}
-        return requests.get(INSTANCE_URL, headers=headers)
+        response: requests.Response = requests.get(INSTANCE_URL, headers=headers)
+        response.raise_for_status()
+        return response
 
 
 def log_info(info):

@@ -13,6 +13,9 @@ from Field import Field
 import XenBlocksCache as Cache
 from XenBlocksWallet import XenBlocksWallet
 from Time import Time
+from HistoricalBalances import HistoricalBalances
+import constants
+import logger as log
 
 from input import *
 
@@ -115,33 +118,22 @@ class MinerHistoryTable:
         return [self.vast_instances[num - 1].id for num in index]
 
 
+
     def print_table(self):
-        delta_hours1 = 1.3
-        delta_hours2 = 6.0
+        delta_hours1 = 0.7
+        delta_hours2 = 4.0
         table: ColorTable = ColorTable(theme=THEME1)
         header = ["Address", "GPUs", "Cost", "USD/h", "DFLOP", "Effect", "Hours", "BLK/h", "BLK/3h", "BLK/d", "$/BLK", "$/BLK/3h", "$/BLK/d", "BLK", "SUP", "XUNI", "Total"]
-        table.field_names = self.header_with_color(header)
+        table.field_names = self.highlight_columns(header)
         table.align = "r"
         table.float_format = ".2"
 
-        self.tot_active_gpus = 0
-        self.tot_gpus = 0
-        self.tot_cost_ph = 0
-        self.tot_block = 0
-        self.tot_block2 = 0
-        self.tot_super = 0
-        self.tot_XUNI = 0
-        self.tot_block_rate1 = 0
-        self.tot_block_rate2 = 0
-        self.tot_block_cost1 = 0
-        self.average_dflop = 0
-        self.all_blocks = 0
-
+        self.reset_data()
         now = int(datetime.now().timestamp())
 
         historic_balances1 = get_balances(now, delta_hours1, delta_hours1 + 0.8)
         historic_balances2 = get_balances(now, delta_hours2, delta_hours2 - 1)
-        historic_balances_day = get_balances(now, 24, 7)
+        historic_balances_day = get_balances(now, 24, 22)
 
         vast_balance: float = self.vast.get_vast_balance()
         idx = 1
@@ -161,9 +153,10 @@ class MinerHistoryTable:
 
             row = self.get_row(idx, mg, delta_1, delta_2, delta_day)
 
+            self.tot_super += get_superblocks(mg.id, historic_balances1, historic_balances2 , historic_balances_day)
+
             if delta_1:
                 self.tot_block += delta_1.block
-                self.tot_super += delta_1.sup
                 self.tot_XUNI += delta_1.xuni
                 self.tot_block_rate1 += delta_1.block / (delta_1.timestamp_s / 3600)
 
@@ -191,34 +184,50 @@ class MinerHistoryTable:
         # Totals row
         if historic_balances1:
             actual_cost = (historic_balances1.vast_balance - vast_balance)
-            hours = (now - historic_balances1.timestamp)  / 3600
+            hours = (now - historic_balances1.timestamp) / 3600
             self.actual_cost_ph = actual_cost / hours
-
-        self.tot_block_cost1 = self.actual_cost_ph / self.tot_block_rate1 if self.tot_block_rate1 > 0 else 0
-        self.tot_hashrate_per_dollar = self.tot_hashrate / self.tot_cost_ph if self.tot_cost_ph > 0 else 0
-#        self.tot_block_cost2 = self.tot_cost_ph / self.tot_block_rate2 if self.tot_block_rate2 > 0 else 0
+            self.tot_block_cost1 = actual_cost / self.tot_block if self.tot_block > 0 else 0
 
         if historic_balances2:
-            cost2 = (historic_balances2.vast_balance - vast_balance)
-            print(DARK_PINK, "Delta Time:  ",  str(round(((now - historic_balances2.timestamp)/3600), 1)))
-            print(DARK_PINK, "Delta USD:   ",  round(cost2, 1))
-            print(DARK_PINK, "Delta Block: ",  self.tot_block2)
-            self.tot_block_cost2 = cost2 / self.tot_block2 if self.tot_block2 > 0 else 0
+            actual_cost = (historic_balances2.vast_balance - vast_balance)
+#            hours = (now - historic_balances2.timestamp) / 3600
+            self.tot_block_cost2 = actual_cost / self.tot_block2 if self.tot_block2 > 0 else 0
 
         if historic_balances_day:
-            self.tot_block_cost_d = (historic_balances_day.vast_balance - vast_balance) / self.tot_block_per_day if self.tot_block_per_day > 0 else 0
+            actual_cost = (historic_balances_day.vast_balance - vast_balance)
+#            print(DARK_PINK, "Delta Time:  ",  str(round(hours, 1)))
+            print(DARK_PINK, "Delta USD:   ",  round(actual_cost, 1))
+            print(DARK_PINK, "Delta Block: ",  self.tot_block_per_day)
+            self.tot_block_cost_d = actual_cost / self.tot_block_per_day if self.tot_block_per_day > 0 else 0
 
-#        self.tot_block_cost1 = total.cost_per_hour / total.block_rate()
+        self.tot_hashrate_per_dollar = self.tot_hashrate / self.tot_cost_ph if self.tot_cost_ph > 0 else 0
+
         row = self.get_totals_row()
         self.add_row(table, row, GOLD)
 
         print()
         print(table)
-        time = datetime.now().strftime('%H:%M:%S')
+        self.print_footer()
+
+
+    def print_footer(self):
+        now = datetime.now().strftime('%H:%M:%S')
         difficulty = Cache.get_difficulty()
         print()
         f = Field(GOLD)
-        print("  ", f.gray(time), "   Diff: ", f.yellow(str(int(difficulty/1000))+"K"))
+        print("  ", f.gray(now), "   Diff: ", f.yellow(str(int(difficulty/1000))+"K"))
+
+        t0 = int(datetime.now().timestamp())
+        tot_balance = 0
+        for a in constants.ALL_ADDR:
+            balance = Cache.get_wallet_balance(a, t0)
+            tot_balance += balance.block
+
+            # Super blocks are reported inaccurately, sometimes as 0 - so remove from count
+        #            tot_balance -= balance.sup
+        #            print(balance.block)
+
+        log.warning(ORANGE + f"    Total balance: {tot_balance}")
 
 
     def add_row(self, table: ColorTable, row: list, color: str):
@@ -347,10 +356,12 @@ class MinerHistoryTable:
         ]
 
 
-    def header_with_color(self, header: list) -> list:
+    def highlight_columns(self, header: list) -> list:
+        col1 = 7
+        col2 = 10
         new_header = header.copy()
-        new_header[6] = GOLD + new_header[6]
-        new_header[9] = GOLD + new_header[9]
+        new_header[col1] = GOLD + new_header[col1]
+        new_header[col2] = GOLD + new_header[col2]
 
         return new_header
 
@@ -400,17 +411,54 @@ class MinerHistoryTable:
         return C_OK
 
 
-def get_balances(now: float, age_in_hours: float, fallback_age: float):
+    def reset_data(self):
+        self.tot_hashrate = 0
+        self.tot_hashrate_per_dollar = 0
+        self.tot_gpus = 0
+        self.tot_active_gpus = 0
+        self.tot_cost_ph: float = 0
+        self.actual_cost_ph: float = 0
+        self.tot_block: int = 0
+        self.tot_block2: int = 0
+        self.tot_super: int = 0
+        self.tot_XUNI: int = 0
+        self.tot_block_rate1: float = 0
+        self.tot_block_rate2: float = 0
+        self.tot_block_per_day: float = 0
+        self.tot_block_cost1: float = 0
+        self.tot_block_cost2: float = 0
+        self.tot_block_cost_d: float = 0
+        self.average_dflop: int = 0
+        self.all_blocks = 0
+
+
+def get_balances(now: float, age_in_hours: float, fallback_age: float) -> HistoricalBalances:
     t0 = datetime.fromtimestamp(now)
     t1 = t0 - timedelta(minutes=age_in_hours*60)
-    fallback = t0 - timedelta(minutes=fallback_age*60)
+    t_fallback = t0 - timedelta(minutes=fallback_age*60)
 
-    print("T0: ", str(int(t0.timestamp())))
-    print("T1: ", str(int(t1.timestamp())))
-    print("Fallback: ", str(int(fallback.timestamp())))
-#    print("Found Timestamp: ", str(balances.timestamp))
+#    print("T0: ", str(int(t0.timestamp())))
+#    print("T1: ", str(int(t1.timestamp())))
+#    print("Fallback: ", str(int(fallback.timestamp())))
 
-    return HistoryManager().get_balances_with_fallback(int(t1.timestamp()), int(fallback.timestamp()))
+    return HistoryManager().get_balances_with_fallback(int(t1.timestamp()), int(t_fallback.timestamp()))
+
+
+def get_superblocks(addr: str,
+                    balances_1: HistoricalBalances,
+                    balances_2: HistoricalBalances,
+                    balances_3: HistoricalBalances) -> int:
+
+    if balances_3 and balances_3.get_for_addr(addr):
+        return balances_3.get_for_addr(addr).sup
+
+    if balances_2 and balances_2.get_for_addr(addr):
+        return balances_2.get_for_addr(addr).sup
+
+    if balances_1 and balances_1.get_for_addr(addr):
+        return balances_1.get_for_addr(addr).sup
+
+    return 0
 
 
 def duration_hours(t1, t2):

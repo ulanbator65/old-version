@@ -53,7 +53,6 @@ class VastBalanceHistoryRepo:
 
         params: tuple = (timestamp,)
         return self.db.select(SELECT_FROM_TIMESTAMP, params)
-#        return list(map(lambda x: x[1], result))
 
 
     def delete(self, timestamp: int):

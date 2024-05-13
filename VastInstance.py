@@ -6,6 +6,7 @@ from config import VAST_IMAGE, WHITELIST, MANUAL_MODE
 
 from MinerStatistics import MinerStatistics
 from db.MinerStatisticsRepo import MinerStatisticsRepo
+from db.DbCache import DbCache
 from VastInstanceRules import *
 
 
@@ -23,7 +24,6 @@ class VastInstance:
         self.start_date = json.get('start_date', None)
         self.duration = json.get('duration', None)
 
-
         self.public_ipaddr = json.get('public_ipaddr', '').strip()
         self.external_port = json.get('ports', {}).get('8080/tcp', [{}])[0].get('HostPort', None)
         self.geolocation = json.get('geolocation', '')
@@ -38,9 +38,19 @@ class VastInstance:
         self.actual_status: str = status if status and len(status) > 0 else "none"
         self.rebooted: bool = False
         self.addr: str = None
+
         env = json.get('extra_env')
         if len(env) > 0:
             self.addr: str = env[0][1]
+
+        self.last_active = None
+        if self.is_running():
+            self.last_active = datetime.now()
+            DbCache().update(str(self.id), str(self.last_active.timestamp()))
+        else:
+            t = DbCache().get(str(self.id))
+            if t:
+                self.last_active = datetime.fromtimestamp(float(t[2]))
 
         #  Miner statistics
         self.miner_status: str = "offline"

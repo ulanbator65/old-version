@@ -4,11 +4,14 @@ from datetime import datetime, timedelta
 import XenBlocksCache as Cache
 
 from VastClient import VastClient
+from VastInstance import VastInstance
 from db.HistoryManager import HistoryManager
 from HistoricalBalances import HistoricalBalances
 from statemachine.State import State
 from statemachine.StateMachine import StateMachine
 import logger as log
+from Field import Field
+import config
 
 
 S_STARTED = "Xenblocks history - waiting"
@@ -27,7 +30,8 @@ class XenblocksHistoryManager:
     def __init__(self, vast: VastClient, history: HistoryManager, theme: int = 1):
         self.vast = vast
         self.history_db = history
-        self.next_trigger = _get_next_save_event(FREQUENCY_M)
+        self.next_trigger = _get_next_event(FREQUENCY_M)
+        self.next_reboot = _get_next_event(2 * 60)
         self.s_save_to_history = State(S_STARTED,
                                        [f"Save history freqency {FREQUENCY_M}"],
                                        self.state_save_to_history)
@@ -70,12 +74,51 @@ class XenblocksHistoryManager:
 
     def state_completed(self, time_tick: datetime) -> State:
 
+        # Reboot VAST instances if time is right (every 2 hours)
+        if time_tick.timestamp() > self.next_reboot.timestamp():
+            self.next_reboot = _get_next_event(2 * 60)
+            self.reboot_instances()
+
+        # Next trigger
         if time_tick.timestamp() > self.next_trigger.timestamp():
-            self.next_trigger = _get_next_save_event(FREQUENCY_M)
+            self.next_trigger = _get_next_event(FREQUENCY_M)
             return self.s_save_to_history
         else:
             return self.s_completed
 
 
-def _get_next_save_event(minutes: int):
+    def reboot_instances(self):
+        self.log_attention("Reboot instances...")
+
+        all_instances = self.get_vast_instances()
+
+        for inst in all_instances:
+            self.log_attention(f"Rebooting id={inst.id}!")
+            self.reboot(inst)
+
+        self.log_attention("Done!")
+
+
+    def reboot(self, inst: VastInstance):
+        if inst.is_running():
+            self.vast.reboot_instance(inst.id)
+
+
+    def get_vast_instances(self) -> list[VastInstance]:
+        instances = self.vast.get_instances()
+        instances = list(filter(lambda x: self.is_managed_instance(x), instances))
+        self.vast.get_miner_data(instances)
+        return instances
+
+
+    def is_managed_instance(self, instance: VastInstance):
+        return instance.has_address(config.ADDR)
+
+
+    def log_attention(self, info: str):
+        text = self.sm.state.name + ": " + info
+        print(Field.attention(text))
+
+
+def _get_next_event(minutes: int):
     return datetime.now() + timedelta(minutes=minutes)
