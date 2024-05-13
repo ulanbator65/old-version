@@ -6,5 +6,5 @@ getch
 paramiko
 cachetools
 python-dateutil
-
+matplotlib
 

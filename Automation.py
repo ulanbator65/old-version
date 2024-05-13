@@ -61,7 +61,6 @@ class Automation:
             print("No offers found currently, try again later.")
 
 
-
     def increase_bid(self, instances: list, dflop_min: int, bid_factor=1.02):
         for inst in instances:
             self.increase_bid_for_instance(inst, dflop_min, bid_factor)
@@ -70,14 +69,16 @@ class Automation:
     def increase_bid_for_instance(self, inst: VastInstance, dflop_min: int, bid_factor=1.02):
         if inst.is_outbid() and inst.dflop_for_min_bid() > dflop_min:
 
+            price = inst.cost_per_hour * bid_factor
+            # Faster bid rate at higher DFLOPs
+            if inst.flops_per_dphtotal > 940:
+                price = inst.cost_per_hour * 1.10
+
             print("Found outbid instance: ", inst.id)
             print("Current Price: ", inst.cost_per_hour)
             print("Current DFLOP: ", inst.flops_per_dphtotal)
             print("Bid Price: ", inst.min_bid)
             print("Bid DFLOP: ", inst.dflop_for_min_bid())
-
-            price = inst.cost_per_hour * bid_factor
-#            price = inst.min_bid
             print("Adjusted Price: ", price)
             self.vast.increase_bid(inst.id, price)
         else:

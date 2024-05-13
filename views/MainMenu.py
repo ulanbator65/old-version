@@ -46,7 +46,6 @@ class MainMenu:
         self.automation = Automation(vast)
         self.table = InstanceTable()
         self.miner_group_table = MinerHistoryTable(self.vast)
-    #    print(vast)
 
 
     def start(self):
@@ -60,25 +59,16 @@ class MainMenu:
                 "0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a"]
 
         timestamp = int(datetime.now().timestamp())
-        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(218, timestamp)
+        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(210, timestamp)
         w1_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[0], timestamp)
         w2_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[1], timestamp)
         w3_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[2], timestamp)
         if rank200:
-            log.info(LIGHT_PINK + "Rank 218: " + rank200.to_str())
+            log.info(LIGHT_PINK + "Rank 210: " + rank200.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w1_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w2_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w3_xuni.to_str())
 
-        tot_balance = 0
-        for a in constants.ALL_ADDR:
-            balance = XenBlocksCache.get_wallet_balance(a, timestamp)
-            tot_balance += balance.block
-            # Super blocks are reported inaccurately, sometimes as 0 - so remove from count
-#            tot_balance -= balance.sup
-#            print(balance.block)
-
-        log.info(ORANGE + f"Total balance: {tot_balance}")
 
 #        db = XenBlocksWalletHistoryRepo()
 #        for a in addr:
@@ -90,25 +80,6 @@ class MainMenu:
 
         if config.SHOW_MINER_GROUPS:
             self.miner_group_table.print()
-
-        if config.RUN_STATE_MACHINES:
-            controller = Controller(self.vast)
-
-#            xuni = XuniMinerV2(self.vast, 1).get_state_machine()
-#            gpu = GpuCatcher(config.ADDR, self.vast, 3).get_state_machine()
-#            offline = OfflineMinerManager(self.vast, 3).get_state_machine()
-#            controller.add_state_machine(xuni)
-
-            history = XenblocksHistoryManager(self.vast, HistoryManager(), 2).get_state_machine()
-            controller.add_state_machine(history)
-
-#            controller.add_state_machine(gpu)
-#            controller.add_state_machine(offline)
-
-#            auto = AutoMiner(self.vast, 1).get_state_machine()
-#            controller.add_state_machine(auto)
-
-            controller.run()
 
         while running:
             choice = main_menu.select()

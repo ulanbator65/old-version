@@ -11,6 +11,7 @@ import config
 from Field import *
 from statemachine.StateMachine import State, StateMachine
 from VastMinerRealtimeTable import VastMinerRealtimeTable
+from MinerHistoryTable import MinerHistoryTable
 
 import logger
 
@@ -22,18 +23,18 @@ CHECKPOINT2 = 1
 END_MINING_M = 6
 
 
-S_START = "Running"
+S_START = "Auto Miner"
 S_CREATE_MINERS = "Buy GPUs"
 S_MANAGE_MINERS = "Miner Startup"
 S_KEEP_MINING = "Just Mining"
 S_INCREASE_BID = "Increase bid"
 
-DFLOP_MIN_BID = 450
-DFLOP_KEEP = 490
-DFLOP_BUY = 500
+DFLOP_MIN_BID = 550
+DFLOP_KEEP = 550
+DFLOP_BUY = 600
 
-MAX_ALLOCATED_GPUS = 20
-MAX_RUNNING_GPUS = 12
+MAX_ALLOCATED_GPUS = 14
+MAX_ACTIVE_GPUS = 10
 
 
 class AutoMiner:
@@ -41,11 +42,14 @@ class AutoMiner:
     def __init__(self, vast, theme: int = 1):
         self.vast: VastClient = vast
         self.automation = Automation(vast)
-        self.next_state_change = None
+        self.next_state_change: datetime = datetime.now()
+        self.difficulty: int = Cache.get_difficulty()
 
         self.s_started = State(S_START,
                                [f"DFLOP min: {DFLOP_MIN_BID}",
-                                "GPU models: A5000"],
+                                "GPU models: A5000",
+                                f"Max allocated GPUs: {MAX_ALLOCATED_GPUS}",
+                                f"Max active GPUs: {MAX_ACTIVE_GPUS}"],
                                self.state_started)
 
         self.s_buy_miners = State(S_CREATE_MINERS,
@@ -79,6 +83,9 @@ class AutoMiner:
     def state_started(self, time_tick: datetime) -> State:
         log.info(f"Auto Miner next event: {str(_get_next_state_event(1))[11:19]}")
 
+        instances = self.get_vast_instances()
+        VastMinerRealtimeTable(instances).print_table()
+
         return self.get_next_state(time_tick)
 
 
@@ -103,12 +110,13 @@ class AutoMiner:
 
 
     def state_just_keep_mining(self, time_tick: datetime) -> State:
-
         logger.info(f"Mining...")
+
         instances = self.get_vast_instances()
         VastMinerRealtimeTable(instances).print_table()
 
         self.handle_problematic_instances()
+
 
         return self.get_next_state(time_tick)
 
@@ -131,8 +139,18 @@ class AutoMiner:
 
 
     def get_next_state(self, time_tick: datetime):
-        state: State = self.sm.state
+        new_difficulty = Cache.get_difficulty()
+        difference = abs(new_difficulty - self.difficulty)
 
+        # Only reboot if difficulty has changed with a small value
+        # A large change in difficulty indicates that the state machine just started or some other (network?) problem
+        if 1 < difference < 6000:
+            self.reboot_instances()
+
+        self.difficulty = new_difficulty
+        self.print_difficulty()
+
+        state: State = self.sm.state
         # Start
         if state == self.s_started:
             return self.s_buy_miners
@@ -162,14 +180,16 @@ class AutoMiner:
 
 
     def buy_new_miners(self, dflop_min: int):
-        self.log_attention(f"Buy A5000 above DFLOP: {dflop_min}")
+        self.log_attention(f"Buy A5000 above DFLOP '{dflop_min}' up to max {MAX_ALLOCATED_GPUS} GPUs")
 
         # Buy new GPUs up to Max Allocation
         if self.get_total_gpus() < MAX_ALLOCATED_GPUS:
-    #        offers1: list[VastOffer] = self.automation.offers_A40(dflop_min)
             offers: list[VastOffer] = self.automation.offers_A5000(dflop_min)
+            #        offers2: list[VastOffer] = self.automation.offers_A40(dflop_min)
 
             self.buy_miners(dflop_min, offers)
+        else:
+            self.log_attention(f"Skip buying - enough allocated GPUs: '{self.get_total_gpus()}'")
 
         self.log_attention("Done!")
 
@@ -197,6 +217,7 @@ class AutoMiner:
         self.kill_outbid_instances(all_instances)
         self.handle_low_performing_instances(all_instances, hash_per_usd_min)
 #        self.kill_unable_to_start_instances(all_instances)
+
 
         self.log_attention("Done!")
 
@@ -235,25 +256,21 @@ class AutoMiner:
             self.vast.kill_instance(inst.id)
 
 
-    def reboot_instances(self, hash_per_usd_min: int):
+    def reboot_instances(self):
         self.log_attention("Reboot instances...")
 
         all_instances = self.get_vast_instances()
 
         for inst in all_instances:
-            self.reboot(inst, hash_per_usd_min)
+            self.reboot(inst)
 
         self.log_attention("Done!")
 
 
-    def reboot(self, inst: VastInstance, hash_per_usd_min: int):
-        hpd = inst.hashrate_per_dollar()
+    def reboot(self, inst: VastInstance):
 
-        # Reboot if hashrate is low but not zero
-        if inst.is_running() and inst.is_miner_online() and (hpd < hash_per_usd_min) and (hpd > 1):
-
-            self.log_attention(f"Rebooting id={inst.id} due to: Low hashrate per USD!")
-            print(f"Hashrate: {hpd}")
+        if inst.is_running():
+            self.log_attention(f"Rebooting id={inst.id}!")
             self.vast.reboot_instance(inst.id)
 
 
@@ -266,12 +283,20 @@ class AutoMiner:
 
             # Reboot if hashrate is low but not zero
             if inst.is_running() and (hpd > 1) and (hpd < hash_per_usd_min):
-                self.reboot(inst, hash_per_usd_min)
+                self.reboot(inst)
 
             elif inst.is_running() and inst.is_miner_online() and hpd <= 0:
                 #                print_attention(f"Stopping id={inst.id} due to: hashrate is zero")
                 print(f"Hashrate: {hpd}")
                 #                self.vast.reboot_instance(inst.id)
+
+
+        table = MinerHistoryTable(self.vast)
+        table.print_table()
+
+#        for mg in table.miner_groups:
+#            if table.e
+
 
         self.log_attention("Done!")
 
@@ -316,9 +341,10 @@ class AutoMiner:
     #   Slowly increase bids
     #
     def increase_bid(self, instances):
+        self.log_attention(f"Increase bid to DFLOP '{DFLOP_MIN_BID}' until max '{MAX_ACTIVE_GPUS}' active GPUs")
 
         # A bit fuzzy logic, but don't increase bids if we have a lot of GPUs running already
-        if self.get_active_gpus() < MAX_RUNNING_GPUS:
+        if self.get_active_gpus() < MAX_ACTIVE_GPUS:
 
             outbid_instances = list(filter(lambda x: self.should_bid(x), instances))
             sort_on_dflop(outbid_instances)
@@ -327,6 +353,8 @@ class AutoMiner:
             for inst in outbid_instances:
                 self.automation.increase_bid_for_instance(inst, DFLOP_MIN_BID, 1.05)
                 self.log_attention(f"Increased bid for: {inst.id}")
+        else:
+            self.log_attention(f"Skip bidding - enough active GPUs: '{self.get_active_gpus()}'")
 
 
     def get_active_gpus(self) -> int:
@@ -381,6 +409,13 @@ class AutoMiner:
         print(f.format(text))
 
 
+    def print_difficulty(self):
+        now = datetime.now().strftime('%H:%M:%S')
+        print()
+        field = Field(GOLD)
+        print("  ", field.gray(now), "   Diff: ", field.yellow(str(int(self.difficulty/1000))+"K"))
+
+
 dflop = lambda x: x.flops_per_dphtotal
 
 
@@ -394,4 +429,5 @@ fgray = Field(GRAY)
 
 def _get_next_state_event(minutes: int):
     return datetime.now() + timedelta(minutes=minutes)
+
 

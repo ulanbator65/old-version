@@ -64,7 +64,7 @@ class HistoryManager:
 
         if not vast_balance:
             error = f"VAST balance not found for fallback: {fallback_timestamp:.0f}"
-            log.error(error)
+            log.warning(error)
             return None
 
         found_timestamp = vast_balance[0]
@@ -94,17 +94,16 @@ class HistoryManager:
         balance = all_balances[row_count - 1]
         found_timestamp = balance[0]
 
-        best_diff = 999999
+        best_diff: float = 99999999.9
         best_balance = None
 
         for b in all_balances:
             found_timestamp = b[0]
-            diff = (found_timestamp - timestamp) / 3600
+            diff: float = (found_timestamp - timestamp) / 3600
 
             if diff < best_diff:
                 best_diff = diff
                 best_balance = b
-
 
         if abs(best_diff) > 0.8:
             error = f"Diff was too high: {best_diff:.2f}"

@@ -5,13 +5,11 @@ from datetime import datetime
 import logger as log
 
 from statemachine.StateMachine import StateMachine
-from VastClient import VastClient
 
 
 class Controller:
 
-    def __init__(self, vast: VastClient):
-        self.vast = vast
+    def __init__(self):
         self.previous_time_tick = None
         self.state_machines: list[StateMachine] = []
 

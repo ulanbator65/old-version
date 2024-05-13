@@ -15,6 +15,7 @@ RUN_STATE_MACHINES = (os.getenv('RUN_STATE_MACHINES') == 'True')
 
 DB_NAME = "../database.db"
 HISTORY_DB = "../history.db"
+CACHE_DB = "../cache.db"
 
 
 BID_INCREASE_PCT = 0

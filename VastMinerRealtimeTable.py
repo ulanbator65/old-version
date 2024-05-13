@@ -180,7 +180,7 @@ class VastMinerRealtimeTable:
         for inst in self.instances:
             if inst.is_running() and inst.miner:
                 if diff != inst.miner.difficulty:
-                    print(">>>>>>  WTF!!!")
+                    raise Exception(">>>>>>  WTF!!!")
 
 
     def add_row(self, table: ColorTable, row: list, color: str):
@@ -200,6 +200,7 @@ class VastMinerRealtimeTable:
         link = f"http://" + ins.get_host() if ins.get_host() else "N/A"
         override = "X" if ins.is_manual_override() else ""
         miner_status = ins.miner_status[0:2]
+        hpd = f"{ins.miner.hashrate_per_dollar():.0f}" if ins.miner.hashrate_per_dollar() > 0 else ins.last_active.strftime('%m-%d %H:%M')
 
         return [
             str(row_nr),
@@ -212,7 +213,7 @@ class VastMinerRealtimeTable:
             # Miner data
             override,
             str(ins.miner.hashrate),
-            f"{ins.miner.hashrate_per_dollar():.0f}",
+            hpd,
             str(round(ins.miner.duration_hours, 2)),
             # 10
             str(round(ins.miner.block_rate(), 2)),
@@ -264,6 +265,7 @@ class VastMinerRealtimeTable:
 
         addr = inst.addr[0:6] + "*" if inst.addr else "-"
         link = f"http://" + inst.get_host() if inst.get_host() else "N/A"
+        hpd = inst.last_active.strftime('%m-%d %H:%M') if inst.last_active else "-"
         return [
             str(row_nr),
             str(inst.id),
@@ -274,7 +276,7 @@ class VastMinerRealtimeTable:
             #  Miner data
             "-",
             "-",
-            "-",
+            hpd,
             "-",
 #            str(round(inst.get_age_in_hours(), 1)),
             "-",
