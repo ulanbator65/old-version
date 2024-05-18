@@ -51,23 +51,24 @@ def test_all1():
 
 def test_all():
 
-#    t1 = datetime.now()
-#    t0 = t1 - timedelta(hours=24)
-#    t_fallback = t1 - timedelta(hours=1)
-
     vast_balances: list[tuple] = VastBalanceHistoryRepo().get_from_timestamp(0)
     vast_balances.reverse()
 
     time_axis = []
-    y_axis = []
+    y1_axis = []
+    y2_axis = []
+    y3_axis = []
     t0 = None
     b0 = None
+    c0 = None
     t1 = None
     b1 = None
+    c1 = None
 
     balances = get_balances()
     timestamps = balances[0]
     blocks = balances[1]
+    usd = balances[2]
 
     for idx, tt in enumerate(timestamps):
 
@@ -75,25 +76,35 @@ def test_all():
 #            print("B1 ", b1)
             t1 = timestamps[idx]
             b1 = blocks[idx]
+            c1 = usd[idx]
 
             delta_time = (t1 - t0) / 3600
 
             # Sample about once per hour or so
-            if delta_time > 1.2:
+            if delta_time > 2.2:
                 delta_block = (b1 - b0)
                 rate = delta_block / delta_time
+                cost = abs(c1 - c0)
+                block_cost = cost/delta_block
+                # Normalize cost
+                block_cost = block_cost if block_cost < 0.12 else 0.12
+                cost = cost if cost < 3.0 else 3.0
 
                 time_axis.append(datetime.fromtimestamp(t1))
-                y_axis.append(rate)
+                y1_axis.append(rate)
+                y2_axis.append(6*cost)
+                y3_axis.append(100*block_cost)
                 b0 = b1
                 t0 = t1
+                c0 = c1
 
         # Initialize first iteration
         else:
             b0 = blocks[idx]
             t0 = timestamps[idx]
+            c0 = usd[idx]
 
-    graph.print_graph("Block per hour", time_axis, y_axis)
+    graph.print_graph("Block per hour", time_axis, y1_axis, y2_axis, y3_axis)
 
 
 def get_balances() -> tuple:
@@ -102,16 +113,19 @@ def get_balances() -> tuple:
 
     timestamps = []
     block_count = []
+    usd_balance = []
 
     for b in vast_balances:
         t = b[0]
+        usd = b[1]
         balances = HistoryManager().get_wallet_balances(t)
         total_block = get_total_block_balance(balances)
 
         timestamps.append(t)
         block_count.append(total_block)
+        usd_balance.append(usd)
 
-    return timestamps, block_count
+    return timestamps, block_count, usd_balance
 
 
 def get_total_block_balance(balances: list[XenBlocksWallet]) -> int:
@@ -120,12 +134,4 @@ def get_total_block_balance(balances: list[XenBlocksWallet]) -> int:
         block += b.block
 
     return block
-
-
-def delta(p0: tuple, p1: tuple) -> tuple:
-
-    delta_time = (p1[0] - p0[0]) / 3600
-    delta_block = (p1[1] - p0[1])
-
-    return p1[0], delta_block
 

@@ -117,6 +117,8 @@ class VastInstance:
     def hashrate_per_dollar(self) -> int:
         return int(self.miner.hashrate_per_dollar()) if self.miner else 0
 
+    def hashrate_per_gpu(self) -> int:
+        return int(self.miner.hashrate / self.num_gpus) if self.miner else 0
 
     def block_cost(self) -> float:
         return self.miner.block_cost if self.miner else 0.0

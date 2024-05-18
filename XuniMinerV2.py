@@ -319,7 +319,7 @@ class XuniMinerV2:
         self.log_attention("Reboot instances...")
 
         all_instances = self.vast.get_instances()
-        self.vast.get_miner_data(all_instances)
+        self.vast.load_miner_data(all_instances)
 
     #        for inst in instances:
         for inst in all_instances:
@@ -424,14 +424,14 @@ class XuniMinerV2:
         if len(instances) < 1:
             logger.error("No XUNI miners found!")
 
-        self.vast.get_miner_data(instances)
+        self.vast.load_miner_data(instances)
         return instances
 
 
     def get_vast_instances(self) -> list[VastInstance]:
         instances = self.vast.get_instances()
         instances = list(filter(lambda x: self.is_managed_instance(x), instances))
-        self.vast.get_miner_data(instances)
+        self.vast.load_miner_data(instances)
         return instances
 
 

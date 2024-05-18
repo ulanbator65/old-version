@@ -4,7 +4,7 @@ from views.BuyMenu import BuyMenu
 from Menu import *
 from MinerHistoryTable import MinerHistoryTable
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
-from XenblocksHistoryManager import XenblocksHistoryManager
+from HistoryManagerSM import HistoryManagerSM
 from InstanceTable import InstanceTable
 
 import config

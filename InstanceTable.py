@@ -62,7 +62,7 @@ class InstanceTable:
 
 
     def load_miner_stats(self):
-        self.vast.get_miner_data(self.instances)
+        self.vast.load_miner_data(self.instances)
         self.sort_on_hashrate_per_dollar()
 #        self.snapshot_time = datetime.now()
 

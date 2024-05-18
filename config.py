@@ -11,7 +11,6 @@ VAST_IMAGE = os.getenv('VAST_IMAGE')
 
 MANUAL_MODE = (os.getenv('MANUAL_MODE') == 'True')
 SHOW_MINER_GROUPS = (os.getenv('SHOW_MINER_GROUPS') == 'True')
-RUN_STATE_MACHINES = (os.getenv('RUN_STATE_MACHINES') == 'True')
 
 DB_NAME = "../database.db"
 HISTORY_DB = "../history.db"
@@ -29,6 +28,18 @@ def get_int_list(name: str) -> list:
         result.append(int(e.strip()))
 
     return result
+
+
+def get_list(name: str) -> list[str]:
+    all = os.getenv(name).split(",")
+    result = []
+    for e in all:
+        result.append(e.strip())
+
+    return result
+
+
+RUN_STATE_MACHINES = get_list('RUN_STATE_MACHINES')
 
 
 # Older configuration, possibly obsolete
