@@ -79,16 +79,13 @@ def test_vast_deserialization():
 
 def test_xenblocks_cache():
     addr = "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA"
-    wallet = XenBlocksCache.get_wallet_balance(addr, int(datetime.now().timestamp()))
+    balance = XenBlocksCache.get_balance(addr)
 
-    if not wallet:
-        raise Exception("Wallet not found!")
+    if balance == 0:
+        raise Exception("Balance not found!")
 
-    if wallet.block < 1100:
+    if balance < 1100:
         raise Exception("Wrong Wallet balance!")
-
-    if wallet.addr != addr.lower():
-        raise Exception("Wrong Wallet address!")
 
     wallet = XenBlocksCache.get_balance_for_rank(200)
     if wallet.rank != 200:

@@ -1,6 +1,6 @@
 
 from datetime import datetime
-from AutoMiner import AutoMiner
+from AutoMinerSM import AutoMinerSM
 from views.BuyMenu import BuyMenu
 from views.TerminateMenu import TerminateMenu
 from views.OfflineMenu import OfflineMenu
@@ -8,10 +8,9 @@ from Menu import *
 from MinerHistoryTable import MinerHistoryTable
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
 from db.HistoryManager import HistoryManager
-from XuniMinerV2 import XuniMinerV2
 from GpuCatcher import GpuCatcher
-from AutoMiner import AutoMiner
-from XenblocksHistoryManager import XenblocksHistoryManager
+from AutoMinerSM import AutoMinerSM
+from HistoryManagerSM import HistoryManagerSM
 from OfflineMinerManager import OfflineMinerManager
 from statemachine.Controller import Controller
 from InstanceTable import InstanceTable
@@ -59,12 +58,12 @@ class MainMenu:
                 "0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a"]
 
         timestamp = int(datetime.now().timestamp())
-        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(210, timestamp)
+        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(200, timestamp)
         w1_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[0], timestamp)
         w2_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[1], timestamp)
         w3_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[2], timestamp)
         if rank200:
-            log.info(LIGHT_PINK + "Rank 210: " + rank200.to_str())
+            log.info(LIGHT_PINK + "Rank 200: " + rank200.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w1_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w2_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w3_xuni.to_str())
@@ -87,21 +86,20 @@ class MainMenu:
 
 
     def get_menu(self) -> Menu:
-        items = []
-        items.append(" ")
-        items.append("   0. Automation")
-        items.append("   1. View Running Instances")
-        items.append("   2. Kill Instances")
-        items.append("   3. Buy an Instance")
-        items.append("   ")
-        items.append("   4. Manage Offline Miners")
-        items.append("   5. Refresh miner statistics (Enter)")
-        items.append("   6. Increase bid")
-        items.append("   7. Reset hours")
-        items.append("   ")
-        items.append("   8. Historic data")
-        items.append("   9. XUNI Miner")
-        items.append("   Exit (x)")
+        items = [" ",
+                 "   0. Automation",
+                 "   1. View Running Instances",
+                 "   2. Kill Instances",
+                 "   3. Buy an Instance",
+                 "   ",
+                 "   4. Manage Offline Miners",
+                 "   5. Refresh miner statistics (Enter)",
+                 "   6. Increase bid",
+                 "   7. Reset hours",
+                 "   ",
+                 "   8. Historic data",
+                 "   9. XUNI Miner",
+                 "   Exit (x)"]
         return Menu("Main Menu", items, 50)
 
 
@@ -168,7 +166,7 @@ class MainMenu:
     def auto_menu_selection(self, choice):
 
         if choice == '1':
-            AutoMiner(self.vast).start_mining()
+            AutoMinerSM(self.vast).start_mining()
 
         if choice == '2':
             pass

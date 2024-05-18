@@ -84,9 +84,10 @@ class MinerHistoryTable:
     def create_miner_group(self, addr: str, timestamp_s: int) -> MinerGroup:
 
         vast_instances = self.get_instances_for_address(addr)
-        balance = Cache.get_wallet_balance(addr, timestamp_s)
+        balance = Cache.get_balance(addr)
+        wallet_balance = XenBlocksWallet(addr, 0, balance, 0, 0, timestamp_s, 0.0)
 
-        return MinerGroup(balance, vast_instances)
+        return MinerGroup(wallet_balance, vast_instances)
 
 
     def print(self):
@@ -121,9 +122,9 @@ class MinerHistoryTable:
 
     def print_table(self):
         delta_hours1 = 0.7
-        delta_hours2 = 4.0
+        delta_hours2 = 6.0
         table: ColorTable = ColorTable(theme=THEME1)
-        header = ["Address", "GPUs", "Cost", "USD/h", "DFLOP", "Effect", "Hours", "BLK/h", "BLK/3h", "BLK/d", "$/BLK", "$/BLK/3h", "$/BLK/d", "BLK", "SUP", "XUNI", "Total"]
+        header = ["Address", "GPUs", "Cost", "USD/h", "DFLOP", "Effect", "Hours", "BLK/h", f"BLK/{int(delta_hours2)}h", "BLK/d", "$/BLK", f"$/BLK/{int(delta_hours2)}h", "$/BLK/d", "BLK", "SUP", "XUNI", "Total"]
         table.field_names = self.highlight_columns(header)
         table.align = "r"
         table.float_format = ".2"
@@ -133,7 +134,7 @@ class MinerHistoryTable:
 
         historic_balances1 = get_balances(now, delta_hours1, delta_hours1 + 0.8)
         historic_balances2 = get_balances(now, delta_hours2, delta_hours2 - 1)
-        historic_balances_day = get_balances(now, 24, 22)
+        historic_balances_day = get_balances(now, 24, 12)
 
         vast_balance: float = self.vast.get_vast_balance()
         idx = 1
@@ -153,7 +154,7 @@ class MinerHistoryTable:
 
             row = self.get_row(idx, mg, delta_1, delta_2, delta_day)
 
-            self.tot_super += get_superblocks(mg.id, historic_balances1, historic_balances2 , historic_balances_day)
+            self.tot_super += get_superblocks(mg.id, historic_balances1, historic_balances2, historic_balances_day)
 
             if delta_1:
                 self.tot_block += delta_1.block
@@ -199,6 +200,9 @@ class MinerHistoryTable:
             print(DARK_PINK, "Delta USD:   ",  round(actual_cost, 1))
             print(DARK_PINK, "Delta Block: ",  self.tot_block_per_day)
             self.tot_block_cost_d = actual_cost / self.tot_block_per_day if self.tot_block_per_day > 0 else 0
+            print(actual_cost)
+            print(self.tot_block_per_day)
+            print(self.tot_block_cost_d)
 
         self.tot_hashrate_per_dollar = self.tot_hashrate / self.tot_cost_ph if self.tot_cost_ph > 0 else 0
 
@@ -220,8 +224,10 @@ class MinerHistoryTable:
         t0 = int(datetime.now().timestamp())
         tot_balance = 0
         for a in constants.ALL_ADDR:
-            balance = Cache.get_wallet_balance(a, t0)
-            tot_balance += balance.block
+            balance = Cache.get_balance(a)
+            tot_balance += balance
+            if balance == 0:
+                raise Exception(f"WTF: {a}")
 
             # Super blocks are reported inaccurately, sometimes as 0 - so remove from count
         #            tot_balance -= balance.sup
@@ -273,7 +279,7 @@ class MinerHistoryTable:
                 to_string(block_per_day),
                 # 10
                 block_cost_to_string(block_cost),
-                block_cost_to_string(block_cost_2),
+                "",
                 "",
                 str(delta_1.block),          # 7
                 str(delta_1.sup),             # 15

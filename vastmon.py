@@ -10,9 +10,9 @@ from views.BuyMenu import BuyMenu
 from views.MainMenu import MainMenu
 from views.TerminateMenu import *
 from statemachine.Controller import Controller
-from XenblocksHistoryManager import XenblocksHistoryManager
+from HistoryManagerSM import HistoryManagerSM
 from db.HistoryManager import HistoryManager
-from AutoMiner import AutoMiner
+from AutoMinerSM import AutoMinerSM
 import app_config as app
 import config as config
 from constants import *
@@ -44,23 +44,25 @@ def main():
 
     print_config()
 
-    if config.RUN_STATE_MACHINES:
-        controller = Controller()
+    controller = Controller()
+
+
+    if "AUTO_MINER" in config.RUN_STATE_MACHINES:
+        auto = AutoMinerSM(vast, 1).get_state_machine()
+        controller.add_state_machine(auto)
+
+    if "HISTORY" in config.RUN_STATE_MACHINES:
+        history = HistoryManagerSM(vast, HistoryManager(), 2).get_state_machine()
+        controller.add_state_machine(history)
 
         #            xuni = XuniMinerV2(self.vast, 1).get_state_machine()
         #            gpu = GpuCatcher(config.ADDR, self.vast, 3).get_state_machine()
         #            offline = OfflineMinerManager(self.vast, 3).get_state_machine()
         #            controller.add_state_machine(xuni)
-
-        history = XenblocksHistoryManager(vast, HistoryManager(), 2).get_state_machine()
-        controller.add_state_machine(history)
-
         #            controller.add_state_machine(gpu)
         #            controller.add_state_machine(offline)
 
-        auto = AutoMiner(vast, 1).get_state_machine()
-        controller.add_state_machine(auto)
-
+    if len(controller.state_machines) > 0:
         controller.run()
     else:
         main_menu.start()

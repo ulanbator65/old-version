@@ -43,8 +43,10 @@ def _parse_item_row(row: str) -> 'Billing':
 def _parse_totals_row(row: str) -> float:
     row.strip()
     values: list = row.strip().split('}')[0].split(',')
-    credit = values[3].split(':')[1]
+    if len(values) < 4:
+        return 0
 
+    credit = values[3].split(':')[1]
     return _parse_float(credit)
 
 
