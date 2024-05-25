@@ -7,6 +7,12 @@ from XenBlocksWallet import XenBlocksWallet
 from constants import *
 
 
+def all_tests():
+    test_integrity()
+    test_history_manager()
+    test_vast_balance_history()
+
+
 def test_vast_balance_history():
     count = XenBlocksWalletHistoryRepo().count()
     print(count)
@@ -82,7 +88,7 @@ def test_history_manager():
     #    all_balances = VastBalanceHistoryRepo().get_from_timestamp(timestamp + 20*60)
 
 
-    historic_time = datetime.fromtimestamp(now) - timedelta(minutes=1*60)
+    historic_time = datetime.fromtimestamp(now) - timedelta(minutes=5*60)
     historic_balances = HistoryManager().get_balances(int(historic_time.timestamp()))
 
     print(GREEN + "Diff: ", (now - historic_balances.timestamp)/3600, RESET)

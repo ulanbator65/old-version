@@ -4,26 +4,40 @@ from requests import Response
 import logger as log
 
 from XenBlocksWallet import XenBlocksWallet
-from tostring import auto_str
 
+
+RPC_URL = "http://xenminer.mooo.com:5555"
+CUSTOM_SERVER_URL = "http://xenminer.mooo.com"
 
 DIFFICULTY_URL1 = "http://xenminer.mooo.com:4447/getallblocks2/109337"
 DIFFICULTY_URL2 = "http://xenminer.mooo.com/blockrate_per_day"
 
-DIFFICULTY_URL = "http://xenminer.mooo.com/difficulty"
-LEADERBOARD_URL = "http://xenminer.mooo.com/leaderboard"
+BALANCE_URL = f"{CUSTOM_SERVER_URL}/total_blocks2"
+DIFFICULTY_URL = f"{CUSTOM_SERVER_URL}/difficulty"
+LEADERBOARD_URL = f"{CUSTOM_SERVER_URL}/leaderboard"
 
 
-@auto_str
 class XenBlocks:
     def __init__(self):
         pass
 
 
+    def get_balance(self, account: str) -> int:
+        params = {"account": account.lower()}
+        try:
+            response = requests.get(BALANCE_URL, params=params, timeout=15)
+            response.raise_for_status()
+            return int(response.json().get('total_blocks', 0))
+
+        except requests.RequestException as e:
+            log.error(f"Error getting balance: {e}")
+            return 0
+
+
     def get_difficulty(self) -> int:
         headers = {}
         try:
-            response = requests.get(DIFFICULTY_URL, headers=headers)
+            response = requests.get(DIFFICULTY_URL, headers=headers, timeout=5)
             response.raise_for_status()
             return int(response.json().get('difficulty', 0))
 
@@ -34,7 +48,7 @@ class XenBlocks:
 
     def get_xenblocks_balance(self) -> list[str]:
         stats_table: list = []
-        text = self._get_leaderboard()
+        text = self.get_leaderboard()
 #        print(text[1100:1800])
 #        text = "abc123 <tbody> <tr> <td>2</td> <td>0x7d39f1372f95fbb67d259ac26443b69eb944f1d0</td> <td>385384</td> <td>504</td> <!-- New cell --> <td>100000.0</td> <!-- Moved to last position --> </tr> </tbody> 123 efg"
 
@@ -63,10 +77,10 @@ class XenBlocks:
         return map_fields(fields, timestamp_s)
 
 
-    def _get_leaderboard(self) -> str:
+    def get_leaderboard(self) -> str:
         headers = {}
         try:
-            response: Response = requests.get(LEADERBOARD_URL, headers=headers)
+            response: Response = requests.get(LEADERBOARD_URL, headers=headers, timeout=25)
             response.raise_for_status()
             return response.content.decode("utf-8")
 

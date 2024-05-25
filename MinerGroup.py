@@ -32,3 +32,4 @@ class MinerGroup:
         return self.balance.block
 
 
+

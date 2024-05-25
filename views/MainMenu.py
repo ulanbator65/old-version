@@ -1,17 +1,13 @@
 
 from datetime import datetime
-from AutoMinerSM import AutoMinerSM
 from views.BuyMenu import BuyMenu
 from views.TerminateMenu import TerminateMenu
 from views.OfflineMenu import OfflineMenu
 from Menu import *
 from MinerHistoryTable import MinerHistoryTable
-from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
-from db.HistoryManager import HistoryManager
-from GpuCatcher import GpuCatcher
+from VastCache import VastCache
 from AutoMinerSM import AutoMinerSM
 from HistoryManagerSM import HistoryManagerSM
-from OfflineMinerManager import OfflineMinerManager
 from statemachine.Controller import Controller
 from InstanceTable import InstanceTable
 
@@ -44,7 +40,7 @@ class MainMenu:
         self.terminate = terminate
         self.automation = Automation(vast)
         self.table = InstanceTable()
-        self.miner_group_table = MinerHistoryTable(self.vast)
+        self.miner_group_table = MinerHistoryTable(VastCache(vast))
 
 
     def start(self):
@@ -58,12 +54,13 @@ class MainMenu:
                 "0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a"]
 
         timestamp = int(datetime.now().timestamp())
-        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(200, timestamp)
+        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(170, timestamp)
         w1_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[0], timestamp)
         w2_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[1], timestamp)
         w3_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[2], timestamp)
+
         if rank200:
-            log.info(LIGHT_PINK + "Rank 200: " + rank200.to_str())
+            log.info(LIGHT_PINK + "Rank 170: " + rank200.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w1_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w2_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w3_xuni.to_str())

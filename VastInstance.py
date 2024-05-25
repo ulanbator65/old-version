@@ -36,7 +36,7 @@ class VastInstance:
 #        self.flops_per_dphtotal = self.total_flops / self.min_bid
         status: str = json.get('actual_status', "none")
         self.actual_status: str = status if status and len(status) > 0 else "none"
-        self.rebooted: bool = False
+        self.last_rebooted: int = int(datetime.now().timestamp())
         self.addr: str = None
 
         env = json.get('extra_env')
@@ -50,7 +50,7 @@ class VastInstance:
         else:
             t = DbCache().get(str(self.id))
             if t:
-                self.last_active = datetime.fromtimestamp(float(t[2]))
+                self.last_active = datetime.fromtimestamp(float(t.value))
 
         #  Miner statistics
         self.miner_status: str = "offline"
@@ -107,10 +107,10 @@ class VastInstance:
         self.miner = None
 
 
-    def add_statistics(self, id: int, json: dict):
+    def add_statistics(self, miner_id: int, json: dict):
 #        print(json)
-        self.miner = MinerStatistics.from_json(json, id, self.get_age_in_hours(), self.cost_per_hour)
-        override_data = self.miner_repo.get(id)
+        self.miner = MinerStatistics.from_json(json, str(miner_id), self.get_age_in_hours(), self.cost_per_hour)
+        override_data = self.miner_repo.get(str(miner_id))
         self.miner.override_data(override_data)
 
 

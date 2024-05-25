@@ -14,8 +14,7 @@ class StateMachine:
         self.state: State = self.states[0]
         self.end_state = None
         self.theme = theme
-        print_state(self.state, self.theme)
-#        raise Exception("WTF!!!")
+        print_state_machine(self.name, self.theme)
 
 
     def set_end_state(self, state: State):
@@ -42,5 +41,19 @@ def print_state(state: State, theme: int):
         Menu(state.name, [""] + offset_rows, 60, col_header=LIGHT_CYAN2, col_row=GRAY, col_bg=BG_GRAY).center().print()
     else:
         Menu(state.name, [""] + offset_rows, 60, col_header=LIGHT_PINK, col_row=GRAY, col_bg=BG_GRAY).center().print()
+    print()
+    print()
+
+
+def print_state_machine(name: str, theme: int):
+    add_offset = lambda x: " "*5 + x
+    offset_rows = [] # list(map(add_offset, state.info))
+
+    if theme == 1:
+        Menu(name, [""] + offset_rows, 60, col_header=GOLD, col_row=GRAY, col_bg=BG_GRAY).center().print()
+    elif theme == 2:
+        Menu(name, [""] + offset_rows, 60, col_header=LIGHT_CYAN2, col_row=GRAY, col_bg=BG_GRAY).center().print()
+    else:
+        Menu(name, [""] + offset_rows, 60, col_header=LIGHT_PINK, col_row=GRAY, col_bg=BG_GRAY).center().print()
     print()
     print()

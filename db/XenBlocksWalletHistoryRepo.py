@@ -44,19 +44,16 @@ class XenBlocksWalletHistoryRepo:
             # This seems to be a delta count and not the total counter
            raise Exception("WTF!!!")
 
-        if snapshot.sup == 0:
-            return False
-
         params: tuple = (snapshot.timestamp_s, snapshot.addr, snapshot.block, snapshot.sup, snapshot.xuni, snapshot.cost_per_hour)
 
-        if snapshot.sup == 0 and snapshot.block > 1600:
+#        if snapshot.sup == 0 and snapshot.block > 1600:
             # A bug in XenBlocks endpoint where super count is sometimes returned as zero
             # Ignore faulty data
 #            print(error.format("Super count with '0' detected. Will not save to database!!!"))
 #            print(str(params))
-            previous = self.get_latest_version(snapshot.addr)
+#            previous = self.get_latest_version(snapshot.addr)
 
-            params = (snapshot.timestamp_s, snapshot.addr, snapshot.block, previous.sup, snapshot.xuni, snapshot.cost_per_hour)
+#            params = (snapshot.timestamp_s, snapshot.addr, snapshot.block, previous.sup, snapshot.xuni, snapshot.cost_per_hour)
 
         pre_count = self.count()
         result = self.db.insert(INSERT, params)

@@ -1,7 +1,7 @@
 
 from VastInstance import VastInstance
 from VastClient import VastClient
-from Field import Field
+from VastCache import VastCache
 from MinerStatistics import *
 from constants import *
 
@@ -14,6 +14,7 @@ class InstanceTable:
 
     def __init__(self, vast: VastClient = VastClient(config.API_KEY, config.BLACKLIST)):
         self.vast = vast
+        self.vast_cache = VastCache(vast)
         self.instances: list[VastInstance] = []
         self.snapshot_time: datetime = datetime.now()
         # Statistics
@@ -89,7 +90,7 @@ class InstanceTable:
 
 
     def get_instances_for_address(self, addr: str) -> list:
-        all_instances = self.vast.get_instances()
+        all_instances = self.vast_cache.get_instances()
 
         filtered_list = list(filter(lambda x: x.addr and x.addr.lower() == addr.lower(), all_instances))
 
@@ -102,7 +103,7 @@ class InstanceTable:
 
 
     def get_manual_instances(self) -> list:
-        all_instances = self.vast.get_instances()
+        all_instances = self.vast_cache.get_instances()
 
         iterator = filter(lambda x: not x.is_managed, all_instances)
         return list(iterator)

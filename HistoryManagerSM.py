@@ -7,6 +7,9 @@ from XenBlocksWallet import XenBlocksWallet
 from VastClient import VastClient
 from VastInstance import VastInstance
 from db.HistoryManager import HistoryManager
+from db.DbCache import DbCache
+from XenblocksBalanceCache import XenblocksBalanceCache
+from VastCache import VastCache
 from HistoricalBalances import HistoricalBalances
 from statemachine.State import State
 from statemachine.StateMachine import StateMachine
@@ -15,8 +18,8 @@ from Field import Field
 import config
 
 
-S_STARTED = "Xenblocks history - waiting"
-S_DONE = "Xenblocks history - saved!"
+S_STARTED = "waiting"
+S_DONE = "saved!"
 
 FREQUENCY_M = 12
 
@@ -30,6 +33,7 @@ class HistoryManagerSM:
 
     def __init__(self, vast: VastClient, history: HistoryManager, theme: int = 1):
         self.vast = vast
+        self.vast_cache = VastCache(vast)
         self.history_db = history
         self.next_trigger = _get_next_event(FREQUENCY_M)
         self.next_reboot = _get_next_event(2 * 60)
@@ -47,7 +51,7 @@ class HistoryManagerSM:
     def state_save_to_history(self, time_tick: datetime) -> State:
 
         timestamp = int(time_tick.timestamp())
-        vast_balance = self.vast.get_vast_balance()
+        vast_balance =  self.vast_cache.get_balance()
 
         if not vast_balance:
             # Try again later
@@ -107,7 +111,7 @@ class HistoryManagerSM:
 
 
     def get_vast_instances(self) -> list[VastInstance]:
-        instances = self.vast.get_instances()
+        instances = self.vast_cache.get_instances()
         instances = list(filter(lambda x: self.is_managed_instance(x), instances))
         self.vast.load_miner_data(instances)
         return instances

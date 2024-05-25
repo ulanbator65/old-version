@@ -72,7 +72,7 @@ class HistoryManager:
 
         wallet_balances = self.get_wallet_balances(found_timestamp)
         if len(wallet_balances) == 0:
-            error = f"XenBlocks balances not found: {found_timestamp:.0f}"
+            error = f"  XenBlocks balances not found: {found_timestamp:.0f}"
             log.error(error)
             return None
 
@@ -122,3 +122,17 @@ class HistoryManager:
             if not wallet_balances or len(wallet_balances) == 0:
                 self.vast_balance_db.delete(b[0])
                 print("Successfully deleted VAST balance: ", b)
+
+            else:
+                count = get_total_block_balance(wallet_balances)
+                if count == 0:
+                    self.vast_balance_db.delete(b[0])
+                    print("Successfully deleted VAST balance: ", b)
+
+
+def get_total_block_balance(balances: list[XenBlocksWallet]) -> int:
+    block = 0
+    for b in balances:
+        block += b.block
+
+    return block

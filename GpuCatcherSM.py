@@ -25,7 +25,7 @@ addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower(),
 MIN_DFLOP = 360
 
 
-class GpuCatcher:
+class GpuCatcherSM:
 
     def __init__(self, addr: str, vast: VastClient, theme: int = 1):
         self.addr = addr
