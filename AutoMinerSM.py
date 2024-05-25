@@ -5,15 +5,18 @@ from datetime import datetime, timedelta
 import XenBlocksCache as Cache
 from Automation import Automation
 from VastInstance import *
-from VastClient import *
+from VastClient import VastClient
+from VastCache import VastCache
 from VastOffer import VastOffer
 import config
 from Field import *
 from statemachine.StateMachine import State, StateMachine
 from VastMinerRealtimeTable import VastMinerRealtimeTable
-from MinerHistoryTable import MinerHistoryTable
+from MinerHistoryTable import MinerHistoryTable, get_balances, calc_effect
+from XenBlocksWallet import XenBlocksWallet
+from MinerGroup import MinerGroup
 
-import logger
+import logger as log
 
 
 START_MINING_M = 48
@@ -29,21 +32,23 @@ S_MANAGE_MINERS = "Miner Startup"
 S_KEEP_MINING = "Just Mining"
 S_INCREASE_BID = "Increase bid"
 
-DFLOP_MIN_BID = 550
-DFLOP_KEEP = 550
-DFLOP_BUY = 600
+DFLOP_MIN_BID = 487
+DFLOP_KEEP = 487
+DFLOP_BUY = 487
 
 MAX_ALLOCATED_GPUS = 14
-MAX_ACTIVE_GPUS = 10
+MAX_ACTIVE_GPUS = 20
 
 
-class AutoMiner:
+class AutoMinerSM:
 
-    def __init__(self, vast, theme: int = 1):
+    def __init__(self, vast: VastClient, theme: int = 1):
         self.vast: VastClient = vast
+        self.vast_cache: VastCache = VastCache(vast)
         self.automation = Automation(vast)
         self.next_state_change: datetime = datetime.now()
         self.difficulty: int = Cache.get_difficulty()
+        self.started_instances = []
 
         self.s_started = State(S_START,
                                [f"DFLOP min: {DFLOP_MIN_BID}",
@@ -57,7 +62,7 @@ class AutoMiner:
                                   self.state_startup_miners)
 
         self.s_manage_miners = State(S_MANAGE_MINERS,
-                                     [f"Manage started miners"],
+                                     [f"Wait for miners to start up completely"],
                                      self.state_manage_started_miners)
 
         self.s_mining = State(S_KEEP_MINING,
@@ -65,8 +70,6 @@ class AutoMiner:
                               self.state_just_keep_mining)
 
         self.s_increase_bid = State(S_INCREASE_BID, ["Buying cheap miners"], self.state_increase_bids)
-
-#        self.s_teardown = State(S_TEARDOWN, [], self.state_teardown)
 
         self.sm = StateMachine("Auto Miner",
                                [self.s_started, self.s_buy_miners, self.s_manage_miners, self.s_mining],
@@ -83,9 +86,6 @@ class AutoMiner:
     def state_started(self, time_tick: datetime) -> State:
         log.info(f"Auto Miner next event: {str(_get_next_state_event(1))[11:19]}")
 
-        instances = self.get_vast_instances()
-        VastMinerRealtimeTable(instances).print_table()
-
         return self.get_next_state(time_tick)
 
 
@@ -101,22 +101,19 @@ class AutoMiner:
 
     def state_manage_started_miners(self, time_tick: datetime) -> State:
 
-        instances = self.get_vast_instances()
-        VastMinerRealtimeTable(instances).print_table()
-
-#        self.handle_startup()
+#        instances = self.get_vast_instances()
+#        VastMinerRealtimeTable(instances).print()
 
         return self.get_next_state(time_tick)
 
 
     def state_just_keep_mining(self, time_tick: datetime) -> State:
-        logger.info(f"Mining...")
+        log.info(f"Mining...")
 
-        instances = self.get_vast_instances()
-        VastMinerRealtimeTable(instances).print_table()
+#        instances = self.get_vast_instances()
+#        VastMinerRealtimeTable(instances).print()
 
         self.handle_problematic_instances()
-
 
         return self.get_next_state(time_tick)
 
@@ -126,13 +123,11 @@ class AutoMiner:
 
         instances = self.get_vast_instances()
         if not instances:
-            # Try again until successfull
             self.log_attention("Increase bids failed!")
-            return self.s_increase_bid
+        else:
+            self.increase_bid(instances)
 
         VastMinerRealtimeTable(instances).print_table()
-
-        self.increase_bid(instances)
 
         self.log_attention("Done!")
         return self.get_next_state(time_tick)
@@ -147,7 +142,9 @@ class AutoMiner:
         if 1 < difference < 6000:
             self.reboot_instances()
 
-        self.difficulty = new_difficulty
+        if new_difficulty > 0:
+            self.difficulty = new_difficulty
+
         self.print_difficulty()
 
         state: State = self.sm.state
@@ -184,10 +181,16 @@ class AutoMiner:
 
         # Buy new GPUs up to Max Allocation
         if self.get_total_gpus() < MAX_ALLOCATED_GPUS:
-            offers: list[VastOffer] = self.automation.offers_A5000(dflop_min)
-            #        offers2: list[VastOffer] = self.automation.offers_A40(dflop_min)
 
-            self.buy_miners(dflop_min, offers)
+            offers: list[VastOffer] = self.automation.offers_A5000(dflop_min)
+#            offers2: list[VastOffer] = self.automation.offers_A4000()
+#            offers = offers + offers2
+
+            for offer in offers:
+                key = f"offer:{offer.id}"
+                DbCache().update(key, str(offer.json))
+
+            self.started_instances = self.buy_miners(dflop_min, offers)
         else:
             self.log_attention(f"Skip buying - enough allocated GPUs: '{self.get_total_gpus()}'")
 
@@ -210,9 +213,10 @@ class AutoMiner:
         self.log_attention("Handle problem instances...")
 
         # Minimum hashrate per dollar, purge instances below
-        hash_per_usd_min: int = 15000
+        hash_per_usd_min: int = 26000
 
         all_instances = self.get_vast_instances()
+
 
         self.kill_outbid_instances(all_instances)
         self.handle_low_performing_instances(all_instances, hash_per_usd_min)
@@ -272,31 +276,59 @@ class AutoMiner:
         if inst.is_running():
             self.log_attention(f"Rebooting id={inst.id}!")
             self.vast.reboot_instance(inst.id)
+            inst.last_rebooted = datetime.now().timestamp()
+
+
+    def reboot_miner_group(self, mg: MinerGroup):
+        now = int(datetime.now().timestamp())
+
+        for inst in mg.instances:
+            next_reboot = datetime.fromtimestamp(inst.last_rebooted) + timedelta(minutes=45)
+            if inst.is_running() and now > next_reboot.timestamp():
+                self.reboot(inst)
 
 
     def handle_low_performing_instances(self, instances: list[VastInstance], hash_per_usd_min: int):
         self.log_attention("Handle low performing instances...")
+        min_hash_per_gpu = 1400
 
         for inst in instances:
-
+            hpg: int = inst.hashrate_per_gpu()
             hpd: int = inst.hashrate_per_dollar()
 
-            # Reboot if hashrate is low but not zero
-            if inst.is_running() and (hpd > 1) and (hpd < hash_per_usd_min):
+            if inst.is_miner_online() and hpd <= 0:
+                #                print_attention(f"Stopping id={inst.id} due to: hashrate is zero")
+                print(f"Rebooting due to Hashrate is zero ({hpd})")
                 self.reboot(inst)
 
-            elif inst.is_running() and inst.is_miner_online() and hpd <= 0:
-                #                print_attention(f"Stopping id={inst.id} due to: hashrate is zero")
-                print(f"Hashrate: {hpd}")
-                #                self.vast.reboot_instance(inst.id)
+            elif not inst.is_running():
+                pass
 
+            # Reboot if hashrate is low (but not zero which means there is no miner stats available)
+            elif (hpg > 1) and (hpg < min_hash_per_gpu):
+                print(f"Rebooting due to Hashrate per gpu={hpg}")
+                self.reboot(inst)
 
-        table = MinerHistoryTable(self.vast)
-        table.print_table()
+            elif (hpd > 1) and (hpd < hash_per_usd_min):
+                print(f"Rebooting due to Hashrate per dollar={hpd}")
+                self.reboot(inst)
 
-#        for mg in table.miner_groups:
-#            if table.e
+        miner_group_table = MinerHistoryTable(self.vast_cache)
+        miner_group_table.print()
 
+        now = int(datetime.now().timestamp())
+        balances = get_balances(now, 1.0, 1.1)
+
+        for mg in miner_group_table.miner_groups:
+            if mg.id == config.ADDR:
+                wallet_balances = balances.get_for_addr(mg.id)
+                delta: XenBlocksWallet = mg.balance.difference(wallet_balances)
+                effect: float = calc_effect(mg.active_gpus, delta.block)
+                if effect < 30.0:
+                    print(f"Rebooting miner group: {mg.id}")
+                    self.reboot_miner_group(mg)
+                else:
+                    self.log_attention("No reboot!")
 
         self.log_attention("Done!")
 
@@ -327,7 +359,7 @@ class AutoMiner:
                 #                        best_offer: VastOffer = offers
                 # Increase bid price
                 price: float = offer.min_bid
-                price = price * 1.11
+                price = price * 1.01
 
                 if offer.flops_per_dphtotal > dflop_min:
                     print(Field.attention(f"Creating instance: {offer.id}"))
@@ -387,17 +419,17 @@ class AutoMiner:
 
 
     def get_vast_instances2(self) -> VastMinerRealtimeTable:
-        instances: list[VastInstance] = self.vast.get_instances()
+        instances: list[VastInstance] = self.vast_cache.get_instances()
         instances = list(filter(lambda x: self.is_managed_instance(x), instances))
-        self.vast.get_miner_data(instances)
+        self.vast.load_miner_data(instances)
 
         return VastMinerRealtimeTable(instances)
 
 
     def get_vast_instances(self) -> list[VastInstance]:
-        instances = self.vast.get_instances()
+        instances = self.vast_cache.get_instances()
         instances = list(filter(lambda x: self.is_managed_instance(x), instances))
-        self.vast.get_miner_data(instances)
+        self.vast.load_miner_data(instances)
         return instances
 
     def is_managed_instance(self, instance: VastInstance):

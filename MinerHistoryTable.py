@@ -2,11 +2,11 @@
 from datetime import datetime, timedelta
 from prettytable.colortable import *
 
-from VastClient import VastClient
 from VastInstance import VastInstance
 from MinerStatistics import MinerStatistics
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
 from db.HistoryManager import HistoryManager
+from VastCache import VastCache
 from MinerGroup import MinerGroup
 from Balance import Balance
 from Field import Field
@@ -28,9 +28,9 @@ addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower(),
 
 class MinerHistoryTable:
 
-    def __init__(self, vast: VastClient):
+    def __init__(self, vast_cache: VastCache):
 
-        self.vast = vast
+        self.vast_cache = vast_cache
         self.vast_balance: Balance = None
         self.vast_instances = None
         self.history = HistoryManager()
@@ -59,7 +59,7 @@ class MinerHistoryTable:
 
 
     def load_miner_groups(self):
-        self.vast_instances = self.vast.get_instances()
+        self.vast_instances = self.vast_cache.get_instances()
 
 #        addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower()]
 #        addr_list: list = ["0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23".lower()]
@@ -92,7 +92,7 @@ class MinerHistoryTable:
 
     def print(self):
         self.load_miner_groups()
-        self.print_table()
+        self._print_table()
 
 
     def refresh(self):
@@ -119,9 +119,8 @@ class MinerHistoryTable:
         return [self.vast_instances[num - 1].id for num in index]
 
 
-
-    def print_table(self):
-        delta_hours1 = 0.7
+    def _print_table(self):
+        delta_hours1 = 0.6
         delta_hours2 = 6.0
         table: ColorTable = ColorTable(theme=THEME1)
         header = ["Address", "GPUs", "Cost", "USD/h", "DFLOP", "Effect", "Hours", "BLK/h", f"BLK/{int(delta_hours2)}h", "BLK/d", "$/BLK", f"$/BLK/{int(delta_hours2)}h", "$/BLK/d", "BLK", "SUP", "XUNI", "Total"]
@@ -136,7 +135,8 @@ class MinerHistoryTable:
         historic_balances2 = get_balances(now, delta_hours2, delta_hours2 - 1)
         historic_balances_day = get_balances(now, 24, 12)
 
-        vast_balance: float = self.vast.get_vast_balance()
+        vast_balance =  self.vast_cache.get_balance()
+
         idx = 1
         for mg in self.miner_groups:
 
@@ -227,7 +227,7 @@ class MinerHistoryTable:
             balance = Cache.get_balance(a)
             tot_balance += balance
             if balance == 0:
-                raise Exception(f"WTF: {a}")
+                log.error(f"WTF balance is zero: {a}")
 
             # Super blocks are reported inaccurately, sometimes as 0 - so remove from count
         #            tot_balance -= balance.sup
@@ -442,10 +442,6 @@ def get_balances(now: float, age_in_hours: float, fallback_age: float) -> Histor
     t0 = datetime.fromtimestamp(now)
     t1 = t0 - timedelta(minutes=age_in_hours*60)
     t_fallback = t0 - timedelta(minutes=fallback_age*60)
-
-#    print("T0: ", str(int(t0.timestamp())))
-#    print("T1: ", str(int(t1.timestamp())))
-#    print("Fallback: ", str(int(fallback.timestamp())))
 
     return HistoryManager().get_balances_with_fallback(int(t1.timestamp()), int(t_fallback.timestamp()))
 

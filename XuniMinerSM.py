@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from Automation import Automation
 from VastInstance import *
 from VastClient import *
+from VastCache import VastCache
 from VastOffer import VastOffer
 import config
 from Field import *
@@ -32,10 +33,11 @@ DFLOP_MIN = 230
 DFLOP_KEEP = 300
 
 
-class XuniMinerV2:
+class XuniMinerSM:
 
     def __init__(self, vast, theme: int = 1):
         self.vast: VastClient = vast
+        self.vast_cache = VastCache(vast)
         self.automation = Automation(vast)
         self.xuni_miners: list[int] = []
         self.total_blocks = 0
@@ -123,9 +125,9 @@ class XuniMinerV2:
 #        if now.timestamp() > self.mining_start.timestamp():
 #            return self.s_buy_miners
 #        else:
-#            log.info("Xuni Miner next event: " + self.s_save_to_history.info[3])
+#            log.info("Xuni Miner next event: " + self.s_show_statistics.info[3])
 
-#        return self.s_save_to_history
+#        return self.s_show_statistics
 
 
     def state_startup_miners(self, time_tick: datetime) -> State:
@@ -318,7 +320,7 @@ class XuniMinerV2:
     def reboot_instances(self, hash_per_usd_min: int):
         self.log_attention("Reboot instances...")
 
-        all_instances = self.vast.get_instances()
+        all_instances = self.vast_cache.get_instances()
         self.vast.load_miner_data(all_instances)
 
     #        for inst in instances:
@@ -419,7 +421,7 @@ class XuniMinerV2:
 
 
     def get_xuni_miners(self) -> list[VastInstance]:
-        instances = self.vast.get_selected_instances(self.xuni_miners)
+        instances = self.vast_cache.get_selected_instances(self.xuni_miners)
 
         if len(instances) < 1:
             logger.error("No XUNI miners found!")
@@ -429,7 +431,7 @@ class XuniMinerV2:
 
 
     def get_vast_instances(self) -> list[VastInstance]:
-        instances = self.vast.get_instances()
+        instances = self.vast_cache.get_instances()
         instances = list(filter(lambda x: self.is_managed_instance(x), instances))
         self.vast.load_miner_data(instances)
         return instances

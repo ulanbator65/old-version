@@ -6,7 +6,8 @@ from db.DbTest import DbTest
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
 from db.HistoryManager import HistoryManager
 from db.VastBalanceHistoryRepo import VastBalanceHistoryRepo
-from OfflineMinerManager import OfflineMinerManager
+from db.DbCache import DbCache
+from XenblocksBalanceCache import XenblocksBalanceCache
 from constants import *
 from datetime import datetime, timedelta
 from statemachine.State import State
@@ -23,8 +24,7 @@ def run_all_tests():
     test_vast_deserialization()
     test_db()
 
-    history.test_integrity()
-    history.test_vast_balance_history()
+    history.all_tests()
 
     graph_test.test_all()
 
@@ -79,7 +79,8 @@ def test_vast_deserialization():
 
 def test_xenblocks_cache():
     addr = "0xfAA35F2283dfCf6165f21E1FE7A94a8e67198DeA"
-    balance = XenBlocksCache.get_balance(addr)
+    cache = XenblocksBalanceCache(addr)
+    balance = DbCache.get(cache)
 
     if balance == 0:
         raise Exception("Balance not found!")

@@ -11,7 +11,7 @@ from VastInstance import VastInstance
 from VastOffer import VastOffer
 from XenBlocks import *
 from Billing import Billing
-import MinerDataCache as MinerCache
+from MinerDataCache import MinerDataCache
 from db.DbCache import DbCache
 from Field import Field
 from constants import *
@@ -38,20 +38,10 @@ class VastClient:
         self.vast_cmd = vast_cmd
 
 
-    def get_selected_instances(self, ids: list[int]) -> list[VastInstance]:
-        instances = self.get_instances()
-        iterator = filter(lambda x: x.id in ids, instances)
-        result = list(iterator)
-        return result
-
-
     def get_instances(self) -> list[VastInstance]:
         instances = []
         try:
-            cached_response: dict = self.get_cached_instances()
-#            cached_response.raise_for_status()
-#            data = json.loads(cached_response) # cached_response.json()
-            data = cached_response
+            data: dict = self.get_cached_instances()
             rows = data.get('instances', [])
 
             if len(rows) < 1:
@@ -61,11 +51,11 @@ class VastClient:
                 inst = self.instance_from_json(json_data)
                 instances.append(inst)
 
+            if len(instances) < 1:
+                log.error("No VAST instances found!!!")
+
         except requests.RequestException as e:
             log.error(f"Error fetching instances: {e}")
-
-        if len(instances) < 1:
-            log.error("No VAST instances found!!!")
 
         return instances
 
@@ -92,12 +82,12 @@ class VastClient:
         cmd.change_bid(instance_id, new_price)
 
 
-    @cached(cache=TTLCache(maxsize=1, ttl=5*MINUTES))
+    @cached(cache=TTLCache(maxsize=1, ttl=1*MINUTES))
     def get_vast_balance(self) -> float:
         billing_data: str = VastAiCLI(self.api_key).get_billing()
 
         if not billing_data:
-            print(f.format(f"Failed to get billing!!"))
+            log.error("Failed to get billing!!")
             return None
 
         return Billing.parse_table(billing_data)
@@ -150,8 +140,6 @@ class VastClient:
     def get_offers(self, query: VastQuery) -> list[VastOffer]:
         return self.vast_cmd.get_offers(query)
 
-#        return list(filter(lambda x: self.validate(x, query), result))
-
 
     def get_query_string(self, model: str, query: VastQuery) -> str:
         query_parts = ["verified=false", "rented=false", f"min_bid <= {query.max_bid}"]
@@ -162,7 +150,7 @@ class VastClient:
         return query_str
 
 
-    def get_miner_data(self, instances: list):
+    def load_miner_data(self, instances: list):
         threads = []
 
         for inst in instances:
@@ -189,9 +177,10 @@ class VastClient:
 
         # Get Miner data
         try:
-            json = MinerCache.get_miner_statistics(inst.id, inst.get_miner_url())
-            if json:
-                inst.add_statistics(inst.id, json)
+            data = MinerDataCache(inst.id, inst.get_miner_url()).get_miner_data()
+#            data = MinerCache.get_miner_statistics(inst.id, inst.get_miner_url())
+            if data:
+                inst.add_statistics(inst.id, data)
                 inst.miner_status = "online"
             else:
                 inst.miner_status = "offline"
@@ -244,20 +233,20 @@ class VastClient:
 
 
     def get_cached_instances(self) -> dict:
+        ttl_s = 40
         key = "VastInstances"
-        cach_entry = DbCache().get(key)
+        cach_entry: DbCache.CacheEntry = DbCache().get(key)
 
-        age_seconds = datetime.now().timestamp() - cach_entry[1]
-        if age_seconds > 40:
-            response = self.__get_cached_response()
+        if cach_entry.is_expired(ttl_s):
+            response = self.get_cached_response()
             DbCache().update(key, response.text)
             return json.loads(response.text)
 
-        return json.loads(cach_entry[2])
+        return json.loads(cach_entry.get_value())
 
 
     @cached(cache=TTLCache(maxsize=1, ttl=10*SECONDS))
-    def __get_cached_response(self) -> requests.Response:
+    def get_cached_response(self) -> requests.Response:
         print("VAST instance cache loaded...")
 
         headers = {"Authorization": f"Bearer {self.api_key}"}

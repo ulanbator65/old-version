@@ -34,7 +34,7 @@ def get_list(name: str) -> list[str]:
     all = os.getenv(name).split(",")
     result = []
     for e in all:
-        result.append(e.strip())
+        result.append(e.strip().upper())
 
     return result
 

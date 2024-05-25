@@ -81,18 +81,23 @@ def test_all():
             delta_time = (t1 - t0) / 3600
 
             # Sample about once per hour or so
-            if delta_time > 2.2:
+            if delta_time > 0.69:
                 delta_block = (b1 - b0)
+                delta_block = delta_block if delta_block > 0.0 else 0.1
                 rate = delta_block / delta_time
-                cost = abs(c1 - c0)
+                rate = rate if rate < 18 else 18
+                cost = abs(c1 - c0) / delta_time
                 block_cost = cost/delta_block
-                # Normalize cost
+
+                # Normalize values so they become easier to compare in the graph
+                # Also truncate any outliers
                 block_cost = block_cost if block_cost < 0.12 else 0.12
-                cost = cost if cost < 3.0 else 3.0
+                norm_cost = 10 * cost
+                norm_cost = norm_cost if norm_cost < 16.0 else 16.0
 
                 time_axis.append(datetime.fromtimestamp(t1))
                 y1_axis.append(rate)
-                y2_axis.append(6*cost)
+                y2_axis.append(norm_cost)
                 y3_axis.append(100*block_cost)
                 b0 = b1
                 t0 = t1

@@ -1,4 +1,6 @@
+
 from VastClient import *
+from VastCache import VastCache
 from VastOffer import VastOffer
 import config
 from Field import *
@@ -10,12 +12,12 @@ A5000_dflops_high = 240
 class Automation:
     def __init__(self, vast):
         self.vast: VastClient = vast
-
+        self.vast_cache = VastCache(vast)
 
 
     def kill_problematic_instances(self):
         print("Purge problematic instances...")
-        all = self.vast.get_instances()
+        all = self.vast_cache.get_instances()
         selected = list(filter(lambda x: x.addr and x.addr.lower() == config.ADDR.lower(), all))
 
         for inst in selected:
@@ -26,7 +28,7 @@ class Automation:
 
     def kill_all_running_instances(self):
         print("Kill running...")
-        all = self.vast.get_instances()
+        all = self.vast_cache.get_instances()
         selected = list(filter(lambda x: x.addr and x.addr.lower() == config.ADDR.lower(), all))
 
         for inst in selected:
@@ -71,8 +73,8 @@ class Automation:
 
             price = inst.cost_per_hour * bid_factor
             # Faster bid rate at higher DFLOPs
-            if inst.flops_per_dphtotal > 940:
-                price = inst.cost_per_hour * 1.10
+            if inst.flops_per_dphtotal > 900:
+                price = inst.cost_per_hour * 1.08
 
             print("Found outbid instance: ", inst.id)
             print("Current Price: ", inst.cost_per_hour)
@@ -123,6 +125,13 @@ class Automation:
         query.max_bid = 0.99
 #        query.tflop_price = dflop_min
 
+        return self.get_top_offers(query)
+
+
+    def offers_A4000(self) -> list[VastOffer]:
+        query = VastQuery.gpu_model_query("RTX_A4000")
+        query.max_result = 10
+        query.max_bid = 0.99
         return self.get_top_offers(query)
 
 

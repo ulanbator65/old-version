@@ -1,12 +1,13 @@
 
-from datetime import datetime
-from XenBlocksWallet import XenBlocksWallet
-from XenBlocks import XenBlocks
+from XenBlocks import *
 from db.DbCache import DbCache
+from XenblocksBalanceCache import XenblocksBalanceCache
+from LeaderboardCache import LeaderbordCache
+from DifficultyCache import DifficultyCache
 from cachetools import cached, TTLCache
 import logger as log
 
-MINUTES = 60
+ONE_MINUTE = 60
 
 xenblocks = XenBlocks()
 
@@ -14,28 +15,13 @@ DIFFICULTY_KEY = "difficulty"
 
 
 def get_difficulty() -> int:
-    ttl_s = 20
-
-    cache_entry = DbCache().get(DIFFICULTY_KEY)
-    if not cache_entry:
-        return _get_difficulty()
-
-    print(cache_entry[2])
-
-    age = datetime.now().timestamp() - int(cache_entry[1])
-    if age > ttl_s:
-        value = _get_difficulty()
-
-    return int(cache_entry[2])
+    cache = DifficultyCache()
+    return DbCache().get_entity(cache)
 
 
-#@cached(cache=TTLCache(maxsize=1, ttl=1*MINUTES))
-def _get_difficulty() -> int:
-    value = xenblocks.get_difficulty()
-    timestamp = datetime.now().timestamp()
-
-    DbCache().update(DIFFICULTY_KEY, str(value))
-    return value
+def get_balance(addr: str) -> int:
+    cache = XenblocksBalanceCache(addr)
+    return DbCache().get_entity(cache)
 
 
 def get_wallet_balance(addr: str, timestamp_s: int) -> XenBlocksWallet:
@@ -44,52 +30,64 @@ def get_wallet_balance(addr: str, timestamp_s: int) -> XenBlocksWallet:
 
 
 def get_balance_for_rank(rank: int, timestamp_s: int) -> XenBlocksWallet:
-    cache = __get_wallet_cache()
-    if len(cache) == 0:
+
+    cache = LeaderbordCache()
+    cached_value: str = DbCache().get_entity(cache)
+
+    if not cached_value:
         return None
 
-    return xenblocks.map_row(cache[rank-1], timestamp_s)
+    tbody: list = get_elements("<tbody>", "</tbody>", cached_value)
+    rows: list = get_elements("<tr>", "</tr>", tbody[0])
+
+    row = rows[rank-1]
+    return XenBlocks().map_row(row, timestamp_s)
 
 
-def get_balance_for_rank(rank: int, timestamp_s: int) -> XenBlocksWallet:
-    age_seconds = 0
-    key = f"rank:{rank}"
-    cach_entry = DbCache().get(key)
+def _get_cached_balance_xxxx(addr: str) -> int:
+    ttl_s = 3*60
+    norm_addr = addr.lower()
+    cach_entry = DbCache().get(norm_addr)
+    value: int = 0
+    new_value: int = 0
 
     if cach_entry:
-        age_seconds = datetime.now().timestamp() - cach_entry[1]
+        if cach_entry.is_expired(ttl_s):
+            new_value = xenblocks.get_balance(norm_addr)
+            log.info(f"Loaded XenBlocks balance cache: {new_value}")
 
-    if not cach_entry or age_seconds > 30:
-        cached_response: list[str] = __get_wallet_cache()
+            # Call to endpoint was not successfull - fallback on older DB cached value
+            if new_value == 0:
+                value = int(cach_entry.value)
+            else:
+                value = new_value
+                DbCache().update(norm_addr, str(new_value))
+        else:
+            value = int(cach_entry.value)
 
-        row = cached_response[rank-1]
-        DbCache().update(key, row)
+    else:
+        new_value = xenblocks.get_balance(norm_addr)
+        DbCache().update(norm_addr, str(new_value))
+        value = new_value
 
-        return xenblocks.map_row(row, timestamp_s)
-
-    return xenblocks.map_row(cach_entry[2], timestamp_s)
-
-
-@cached(cache=TTLCache(maxsize=1, ttl=MINUTES))
-def __get_wallet_cache() -> list[str]:
-    print("XenBlocksCache loaded...")
-    return xenblocks.get_xenblocks_balance()
+    return value
 
 
 def _get_cached_wallet_balance(addr: str) -> str:
-    age_seconds = 0
+    max_age_seconds = 4 * 3600
     cach_entry = DbCache().get(addr)
 
-    if cach_entry:
-        age_seconds = datetime.now().timestamp() - cach_entry[1]
+    if not cach_entry or cach_entry.is_expired(max_age_seconds):
+        cached_response: list[str] = xenblocks.get_xenblocks_balance()
 
-    if not cach_entry or age_seconds > 30:
-        cached_response: list[str] = __get_wallet_cache()
+        # Call to endpoint was not successfull - fallback on older DB Cache value
+        if (not cached_response or len(cached_response) == 0) and cach_entry:
+            return cach_entry.value
 
         rows = list(filter(lambda x: addr.lower() in x, cached_response))
         row = rows[0]
         DbCache().update(addr, row)
         return row
 
-    return cach_entry[2]
+    return cach_entry.get_value()
 

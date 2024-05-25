@@ -13,6 +13,7 @@ from statemachine.Controller import Controller
 from HistoryManagerSM import HistoryManagerSM
 from db.HistoryManager import HistoryManager
 from AutoMinerSM import AutoMinerSM
+from MonitorSM import MonitorSM
 import app_config as app
 import config as config
 from constants import *
@@ -47,16 +48,20 @@ def main():
     controller = Controller()
 
 
-    if "AUTO_MINER" in config.RUN_STATE_MACHINES:
+    if "Auto_Miner".upper() in config.RUN_STATE_MACHINES:
         auto = AutoMinerSM(vast, 1).get_state_machine()
         controller.add_state_machine(auto)
 
-    if "HISTORY" in config.RUN_STATE_MACHINES:
+    if "History".upper() in config.RUN_STATE_MACHINES:
         history = HistoryManagerSM(vast, HistoryManager(), 2).get_state_machine()
         controller.add_state_machine(history)
 
-        #            xuni = XuniMinerV2(self.vast, 1).get_state_machine()
-        #            gpu = GpuCatcher(config.ADDR, self.vast, 3).get_state_machine()
+    if "Monitor".upper() in config.RUN_STATE_MACHINES:
+        monitor = MonitorSM(vast, HistoryManager(), 3).get_state_machine()
+        controller.add_state_machine(monitor)
+
+        #            xuni = XuniMinerSM(self.vast, 1).get_state_machine()
+        #            gpu = GpuCatcherSM(config.ADDR, self.vast, 3).get_state_machine()
         #            offline = OfflineMinerManager(self.vast, 3).get_state_machine()
         #            controller.add_state_machine(xuni)
         #            controller.add_state_machine(gpu)
