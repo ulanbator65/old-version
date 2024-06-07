@@ -123,7 +123,7 @@ class XuniMinerSM:
 
 #        now = time_tick
 #        if now.timestamp() > self.mining_start.timestamp():
-#            return self.s_buy_miners
+#            return self.s_buy_gpus
 #        else:
 #            log.info("Xuni Miner next event: " + self.s_show_statistics.info[3])
 
@@ -299,7 +299,7 @@ class XuniMinerSM:
 
         for inst in instances:
             if inst.is_outbid() and (inst.flops_per_dphtotal < DFLOP_KEEP):
-                self.log_attention(f"Stopping id={inst.id} due to: outbid")
+                self.log_attention(f"Stopping id={inst.cid} due to: outbid")
                 print(f"Inst DFLOP: {inst.flops_per_dphtotal}")
                 self.kill_instance(inst)
 
@@ -309,12 +309,12 @@ class XuniMinerSM:
 
     def kill_instances(self, instances: list[VastInstance]):
         for inst in instances:
-            self.vast.kill_instance(inst.id)
+            self.vast.kill_instance(inst.cid)
 
 
     def kill_instance(self, inst: VastInstance):
         if inst.flops_per_dphtotal < 350:
-            self.vast.kill_instance(inst.id)
+            self.vast.kill_instance(inst.cid)
 
 
     def reboot_instances(self, hash_per_usd_min: int):
@@ -329,9 +329,9 @@ class XuniMinerSM:
 
             # Reboot if hashrate is low but not zero
             if inst.is_running() and (hpd < hash_per_usd_min):
-                self.log_attention(f"Rebooting id={inst.id} due to: Low hashrate per USD!")
+                self.log_attention(f"Rebooting id={inst.cid} due to: Low hashrate per USD!")
                 print(f"Hashrate: {hpd}")
-                self.vast.reboot_instance(inst.id)
+                self.vast.reboot_instance(inst.cid)
 
         self.log_attention("Done!")
 
@@ -346,14 +346,14 @@ class XuniMinerSM:
 
             # Reboot if hashrate is low but not zero
             if inst.is_running() and (hpd >= limit_hashrate) and (hpd < hash_per_usd_min):
-                self.log_attention(f"Rebooting id={inst.id} due to: Low hashrate per USD!")
+                self.log_attention(f"Rebooting id={inst.cid} due to: Low hashrate per USD!")
                 print(f"Hashrate: {hpd}")
-                self.vast.reboot_instance(inst.id)
+                self.vast.reboot_instance(inst.cid)
 
             elif inst.is_running() and hpd <= limit_hashrate:
-                #                print_attention(f"Stopping id={inst.id} due to: hashrate is zero")
+                #                print_attention(f"Stopping cid={inst.cid} due to: hashrate is zero")
                 print(f"Hashrate: {hpd}")
-                #                self.vast.reboot_instance(inst.id)
+                #                self.vast.reboot_instance(inst.cid)
     #                self.kill_instance(inst)
 
         self.log_attention("Done!")
@@ -367,7 +367,7 @@ class XuniMinerSM:
         for inst in instances:
 
             if inst.actual_status == "created" or inst.actual_status == "loading":
-                self.log_attention(f"Stopping id={inst.id} due to: Not started!")
+                self.log_attention(f"Stopping id={inst.cid} due to: Not started!")
                 to_kill.append(inst)
 #                self.kill_instance(inst)
 
@@ -407,14 +407,14 @@ class XuniMinerSM:
         if len(outbid_instances) > 0:
             top_dflop = outbid_instances[0]
             self.automation.increase_bid_for_instance(top_dflop, 500, 1.02)
-            self.log_attention(f"Increased bid for: {top_dflop.id}")
+            self.log_attention(f"Increased bid for: {top_dflop.cid}")
 
 #        self.automation.increase_bid(outbid_instances, 1.02)
 
 
     def should_bid(self, instance: VastInstance):
         excluded = [10700258]
-        if instance.id in excluded:
+        if instance.cid in excluded:
             return False
 
         return instance.is_outbid() and instance.num_gpus > 0

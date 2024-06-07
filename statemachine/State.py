@@ -7,7 +7,8 @@ import logger as log
 
 class State:
 
-    def __init__(self, name: str, info: list[str], runnable):
+    def __init__(self, sid: int, name: str, info: list[str], runnable):
+        self.sid = sid
         self.name = name
         self.info = info
         self.runnable = runnable

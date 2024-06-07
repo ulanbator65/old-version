@@ -16,7 +16,12 @@ DIFFICULTY_KEY = "difficulty"
 
 def get_difficulty() -> int:
     cache = DifficultyCache()
-    return DbCache().get_entity(cache)
+    value = DbCache().get_entity(cache)
+
+    if value == 0:
+        value = DbCache().get(cache.get_key()).value
+
+    return value
 
 
 def get_balance(addr: str) -> int:
@@ -42,35 +47,6 @@ def get_balance_for_rank(rank: int, timestamp_s: int) -> XenBlocksWallet:
 
     row = rows[rank-1]
     return XenBlocks().map_row(row, timestamp_s)
-
-
-def _get_cached_balance_xxxx(addr: str) -> int:
-    ttl_s = 3*60
-    norm_addr = addr.lower()
-    cach_entry = DbCache().get(norm_addr)
-    value: int = 0
-    new_value: int = 0
-
-    if cach_entry:
-        if cach_entry.is_expired(ttl_s):
-            new_value = xenblocks.get_balance(norm_addr)
-            log.info(f"Loaded XenBlocks balance cache: {new_value}")
-
-            # Call to endpoint was not successfull - fallback on older DB cached value
-            if new_value == 0:
-                value = int(cach_entry.value)
-            else:
-                value = new_value
-                DbCache().update(norm_addr, str(new_value))
-        else:
-            value = int(cach_entry.value)
-
-    else:
-        new_value = xenblocks.get_balance(norm_addr)
-        DbCache().update(norm_addr, str(new_value))
-        value = new_value
-
-    return value
 
 
 def _get_cached_wallet_balance(addr: str) -> str:

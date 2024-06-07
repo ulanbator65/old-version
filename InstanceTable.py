@@ -38,7 +38,7 @@ class InstanceTable:
 
     def get_instance(self, id: int) -> VastInstance:
         for inst in self.instances:
-            if inst.id == id:
+            if inst.cid == id:
                 return inst
         return None
 
@@ -75,8 +75,8 @@ class InstanceTable:
     def housekeeping(self):
         for inst in self.instances:
             if inst.needs_reboot():
-#                self.vast.reboot_instance(inst.id)
-                print(f"Rebooting id={inst.id} due to: Low hashrate per USD!")
+#                self.vast.reboot_instance(inst.cid)
+                print(f"Rebooting id={inst.cid} due to: Low hashrate per USD!")
                 print(f"Hashrate: {inst.hashrate_per_dollar()}")
 
 
@@ -119,7 +119,7 @@ class InstanceTable:
 
 
     def get_id_for_row(self, row_nr) -> int:
-        return self.get_instance_for_row(row_nr).id
+        return self.get_instance_for_row(row_nr).cid
 
 
     def get_instance_for_row(self, row_nr) -> VastInstance:
@@ -127,7 +127,7 @@ class InstanceTable:
 
 
     def get_ids_for_index(self, index: list) -> list:
-        return [self.instances[num - 1].id for num in index]
+        return [self.instances[num - 1].cid for num in index]
 
 
     def should_refresh_cache(self):

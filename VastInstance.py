@@ -19,7 +19,7 @@ class VastInstance:
         self.json: dict = json
         self.image = json.get('image_uuid')
         self.is_managed: bool = not self._is_manual_instance()
-        self.id: int = json.get('id')
+        self.cid: int = json.get('id')
         self.min_bid: float = json.get('min_bid')
         self.start_date = json.get('start_date', None)
         self.duration = json.get('duration', None)
@@ -46,9 +46,9 @@ class VastInstance:
         self.last_active = None
         if self.is_running():
             self.last_active = datetime.now()
-            DbCache().update(str(self.id), str(self.last_active.timestamp()))
+            DbCache().update(str(self.cid), str(self.last_active.timestamp()))
         else:
-            t = DbCache().get(str(self.id))
+            t = DbCache().get(str(self.cid))
             if t:
                 self.last_active = datetime.fromtimestamp(float(t.value))
 
@@ -87,8 +87,8 @@ class VastInstance:
         return VastInstanceRules.is_outbid(self.actual_status)
 
     def is_same(self, id: int) -> bool:
-#        print(type(id))
-        return self.id == id
+#        print(type(cid))
+        return self.cid == id
 
     def needs_reboot(self):
         return VastInstanceRules.needs_reboot(self.actual_status, self.hashrate_per_dollar())

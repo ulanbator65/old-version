@@ -1,6 +1,4 @@
 
-import time
-
 from datetime import datetime, timedelta
 import XenBlocksCache as Cache
 from Automation import Automation
@@ -12,7 +10,7 @@ import config
 from Field import *
 from statemachine.StateMachine import State, StateMachine
 from VastMinerRealtimeTable import VastMinerRealtimeTable
-from MinerHistoryTable import MinerHistoryTable, get_balances, calc_effect
+from MinerPerformanceTable import MinerPerformanceTable, get_balances, calc_effect
 from XenBlocksWallet import XenBlocksWallet
 from MinerGroup import MinerGroup
 
@@ -26,53 +24,82 @@ CHECKPOINT2 = 1
 END_MINING_M = 6
 
 
-S_START = "Auto Miner"
-S_CREATE_MINERS = "Buy GPUs"
-S_MANAGE_MINERS = "Miner Startup"
-S_KEEP_MINING = "Just Mining"
+S_START = "VAST Bot"
+S_BUY_GPUS = "Buy GPUs"
+S_SELL_GPUS = "Sell GPUs"
+S_MANAGE_MINERS = "Manage Miners"
+S_PURGE = "Purge underperforming instance"
 S_INCREASE_BID = "Increase bid"
 
-DFLOP_MIN_BID = 487
-DFLOP_KEEP = 487
-DFLOP_BUY = 487
+DFLOP_MIN_BID = 950
+DFLOP_KEEP = 950
+DFLOP_BUY = 990
 
-MAX_ALLOCATED_GPUS = 14
-MAX_ACTIVE_GPUS = 20
+MIN_HASH_PER_GPU = 2100
+# Minimum hashrate per dollar, purge instances below
+HASH_PER_USD_MIN: int = 80000
 
 
-class AutoMinerSM:
+MAX_ALLOCATED_GPUS = int(config.MAX_GPU)
+MAX_ACTIVE_GPUS = 28
+
+
+#
+# Buy cheap VAST instances
+# Sell instances when they become expensive
+#
+# Main functionality is buying GPUs cheap and selling them when they become expensive.
+# Buying here means allocating by placing the best bid on the price per hour.
+# Selling means deallocating (returning) an allocated instance.
+#
+# Additonally:
+# Monitor XenBlocks miner performance
+# Purge instances where miners are not performing as expected and it can't be resolved with a reboot
+# Reboot instances when they are underperforming
+#
+
+
+class VastTradingBotSM:
 
     def __init__(self, vast: VastClient, theme: int = 1):
         self.vast: VastClient = vast
         self.vast_cache: VastCache = VastCache(vast)
         self.automation = Automation(vast)
-        self.next_state_change: datetime = datetime.now()
         self.difficulty: int = Cache.get_difficulty()
         self.started_instances = []
+        self.count = 0
 
-        self.s_started = State(S_START,
+        self.s_started = State(1, S_START,
                                [f"DFLOP min: {DFLOP_MIN_BID}",
                                 "GPU models: A5000",
                                 f"Max allocated GPUs: {MAX_ALLOCATED_GPUS}",
                                 f"Max active GPUs: {MAX_ACTIVE_GPUS}"],
                                self.state_started)
 
-        self.s_buy_miners = State(S_CREATE_MINERS,
-                                  [f"DFLOP min: {DFLOP_MIN_BID}"],
-                                  self.state_startup_miners)
+        self.s_buy_gpus = State(2, S_BUY_GPUS,
+                                [f"DFLOP min: {DFLOP_MIN_BID}"],
+                                self.state_buy_gpus)
 
-        self.s_manage_miners = State(S_MANAGE_MINERS,
-                                     [f"Wait for miners to start up completely"],
-                                     self.state_manage_started_miners)
+        self.s_sell_gpus = State(3, S_SELL_GPUS,
+                                 [f""],
+                                 self.state_sell_gpus)
 
-        self.s_mining = State(S_KEEP_MINING,
+#        self.s_manage_miners = State(4, S_MANAGE_MINERS,
+#                                     [f"Wait for miners to start up completely"],
+#                                     self.state_manage_started_miners)
+
+        self.s_mining = State(4, S_MANAGE_MINERS,
                               [f"Just keep mining..."],
-                              self.state_just_keep_mining)
+                              self.state_manage_miners)
 
-        self.s_increase_bid = State(S_INCREASE_BID, ["Buying cheap miners"], self.state_increase_bids)
+        self.s_purge = State(5, S_PURGE,
+                             [f"Purge underperforming instances..."],
+                             self.state_purge_miners)
+
+        self.s_increase_bid = State(6, S_INCREASE_BID, ["Buying cheap miners"], self.state_increase_bids)
 
         self.sm = StateMachine("Auto Miner",
-                               [self.s_started, self.s_buy_miners, self.s_manage_miners, self.s_mining],
+                               [self.s_started, self.s_sell_gpus, self.s_buy_gpus, self.s_mining],
                                theme)
 
 
@@ -89,32 +116,34 @@ class AutoMinerSM:
         return self.get_next_state(time_tick)
 
 
-    def state_startup_miners(self, time_tick: datetime) -> State:
+    # Buy cheap GPUs
+    def state_buy_gpus(self, time_tick: datetime) -> State:
 
         self.buy_new_miners(DFLOP_BUY)
 
+        return self.get_next_state(time_tick)
+
+
+    # Sell expensive GPUs - i.e. delete outbid instances
+    def state_sell_gpus(self, time_tick: datetime) -> State:
+
         instances = self.get_vast_instances()
+        VastMinerRealtimeTable(instances).print_table()
+
         self.kill_outbid_instances(instances)
 
         return self.get_next_state(time_tick)
 
 
-    def state_manage_started_miners(self, time_tick: datetime) -> State:
-
-#        instances = self.get_vast_instances()
-#        VastMinerRealtimeTable(instances).print()
+    def state_manage_miners(self, time_tick: datetime) -> State:
+        log.info(f"Mining...")
+        self.handle_problematic_instances()
 
         return self.get_next_state(time_tick)
 
 
-    def state_just_keep_mining(self, time_tick: datetime) -> State:
-        log.info(f"Mining...")
-
-#        instances = self.get_vast_instances()
-#        VastMinerRealtimeTable(instances).print()
-
-        self.handle_problematic_instances()
-
+    def state_purge_miners(self, time_tick: datetime) -> State:
+        self.purge_instances()
         return self.get_next_state(time_tick)
 
 
@@ -122,9 +151,7 @@ class AutoMinerSM:
         self.log_attention("Increase bids...")
 
         instances = self.get_vast_instances()
-        if not instances:
-            self.log_attention("Increase bids failed!")
-        else:
+        if instances:
             self.increase_bid(instances)
 
         VastMinerRealtimeTable(instances).print_table()
@@ -140,6 +167,7 @@ class AutoMinerSM:
         # Only reboot if difficulty has changed with a small value
         # A large change in difficulty indicates that the state machine just started or some other (network?) problem
         if 1 < difference < 6000:
+            self.log_attention("Reboot instances due to change in difficulty!")
             self.reboot_instances()
 
         if new_difficulty > 0:
@@ -150,23 +178,30 @@ class AutoMinerSM:
         state: State = self.sm.state
         # Start
         if state == self.s_started:
-            return self.s_buy_miners
+            return self.s_buy_gpus
 
         # Buy Miners
-        elif state == self.s_buy_miners:
-            self.next_state_change = _get_next_state_event(2)
-            return self.s_manage_miners
+        elif state == self.s_buy_gpus:
+            return self.s_sell_gpus
 
-        # Manage Miners
-        elif state == self.s_manage_miners:
-            if time_tick.timestamp() > self.next_state_change.timestamp():
-                self.next_state_change = _get_next_state_event(3)
+        # Kill Outbid Miners
+        elif state == self.s_sell_gpus:
             return self.s_mining
 
-        # Mine XUNI
+        # Manage Miners
+#        elif state == self.s_manage_miners:
+#            return self.s_mining
+
+        # Mine
         elif state == self.s_mining:
-            if time_tick.timestamp() > self.next_state_change.timestamp():
-                return self.s_increase_bid
+            self.count += 1
+            if self.count >= 2:
+                self.count = 0
+                return self.s_purge
+
+        # Purge bad instancez
+        elif state == self.s_purge:
+            return self.s_increase_bid
 
         # Increase bid
         elif state == self.s_increase_bid:
@@ -197,31 +232,33 @@ class AutoMinerSM:
         self.log_attention("Done!")
 
 
-    def handle_startup(self):
-        self.log_attention("Handle Startup...")
-
-        # Minimum hashrate per dollar, purge instances below
-        hash_per_usd_min: int = 15000
-        all_instances = self.get_vast_instances()
-
-#        self.kill_outbid_instances(all_instances)
-        self.handle_low_performing_instances(all_instances, hash_per_usd_min)
-#        self.kill_unable_to_start_instances(all_instances)
-
-
     def handle_problematic_instances(self):
         self.log_attention("Handle problem instances...")
 
-        # Minimum hashrate per dollar, purge instances below
-        hash_per_usd_min: int = 26000
-
         all_instances = self.get_vast_instances()
+        self.handle_low_performing_instances(all_instances, HASH_PER_USD_MIN)
+
+        self.log_attention("Done!")
 
 
-        self.kill_outbid_instances(all_instances)
-        self.handle_low_performing_instances(all_instances, hash_per_usd_min)
-#        self.kill_unable_to_start_instances(all_instances)
+    def purge_instances(self):
+        self.log_attention("Purge underperforming instances...")
 
+        instances = self.get_vast_instances()
+        VastMinerRealtimeTable(instances).print_table()
+
+        self.kill_outbid_instances(instances)
+
+        for inst in instances:
+            hpd: int = inst.hashrate_per_dollar()
+
+            if inst.is_miner_online() and inst.hashrate() < 444:
+                print(f"Kill instance due to Hashrate is zero ({inst.hashrate()})")
+                self.kill_instance(inst)
+
+            elif (hpd > 1) and (hpd < HASH_PER_USD_MIN):
+                print(f"Killing instance due to Hashrate Per USD below minimum: {hpd}")
+                self.kill_instance(inst)
 
         self.log_attention("Done!")
 
@@ -235,16 +272,15 @@ class AutoMinerSM:
             #  This case shouldn't happen but it still does!!!
             #  My bid is lower than the min bid offered on the market place
             #  but I still don't own the instance. So I will delete my bid
-            if inst.is_outbid() and (inst.flops_per_dphtotal < (inst.dflop_for_min_bid() - 2)):
-                log.error(f"Suspicious instance, will be deleted: {inst.id}")
+            if inst.is_outbid() and (inst.flops_per_dphtotal < (inst.dflop_for_min_bid() - 4)):
+                log.error(f"Suspicious instance, will be deleted: {inst.cid}")
                 delete = True
 
             elif not inst.is_running() and (inst.dflop_for_min_bid() < DFLOP_KEEP):
                 delete = True
 
             if delete:
-                self.log_attention(f"Stopping id={inst.id} due to: outbid")
-                print(f"Inst DFLOP min bid: {inst.dflop_for_min_bid()}")
+                self.log_attention(f"Stopping id={inst.cid} due to outbid:  Instance DFLOP min bid: {int(inst.dflop_for_min_bid())}")
                 self.kill_instance(inst)
 
         self.log_attention("Done!")
@@ -256,26 +292,21 @@ class AutoMinerSM:
 
 
     def kill_instance(self, inst: VastInstance):
-        if not inst.is_running():
-            self.vast.kill_instance(inst.id)
+        self.vast.kill_instance(inst.cid)
 
 
     def reboot_instances(self):
-        self.log_attention("Reboot instances...")
-
         all_instances = self.get_vast_instances()
 
         for inst in all_instances:
             self.reboot(inst)
 
-        self.log_attention("Done!")
-
 
     def reboot(self, inst: VastInstance):
 
         if inst.is_running():
-            self.log_attention(f"Rebooting id={inst.id}!")
-            self.vast.reboot_instance(inst.id)
+            self.log_attention(f"Rebooting id={inst.cid}!")
+            self.vast.reboot_instance(inst.cid)
             inst.last_rebooted = datetime.now().timestamp()
 
 
@@ -286,18 +317,20 @@ class AutoMinerSM:
             next_reboot = datetime.fromtimestamp(inst.last_rebooted) + timedelta(minutes=45)
             if inst.is_running() and now > next_reboot.timestamp():
                 self.reboot(inst)
+            else:
+                self.log_attention(f"Next reboot = {next_reboot}")
 
 
     def handle_low_performing_instances(self, instances: list[VastInstance], hash_per_usd_min: int):
         self.log_attention("Handle low performing instances...")
-        min_hash_per_gpu = 1400
 
         for inst in instances:
             hpg: int = inst.hashrate_per_gpu()
             hpd: int = inst.hashrate_per_dollar()
 
+            # Sometimes miner doesn't start up directly - can be solved by re-starting the instance
             if inst.is_miner_online() and hpd <= 0:
-                #                print_attention(f"Stopping id={inst.id} due to: hashrate is zero")
+                #                print_attention(f"Stopping cid={inst.cid} due to: hashrate is zero")
                 print(f"Rebooting due to Hashrate is zero ({hpd})")
                 self.reboot(inst)
 
@@ -305,7 +338,7 @@ class AutoMinerSM:
                 pass
 
             # Reboot if hashrate is low (but not zero which means there is no miner stats available)
-            elif (hpg > 1) and (hpg < min_hash_per_gpu):
+            elif (hpg > 1) and (hpg < MIN_HASH_PER_GPU):
                 print(f"Rebooting due to Hashrate per gpu={hpg}")
                 self.reboot(inst)
 
@@ -313,24 +346,23 @@ class AutoMinerSM:
                 print(f"Rebooting due to Hashrate per dollar={hpd}")
                 self.reboot(inst)
 
-        miner_group_table = MinerHistoryTable(self.vast_cache)
+        miner_group_table = MinerPerformanceTable(self.vast_cache)
         miner_group_table.print()
 
         now = int(datetime.now().timestamp())
         balances = get_balances(now, 1.0, 1.1)
 
         for mg in miner_group_table.miner_groups:
-            if mg.id == config.ADDR:
+            if mg.id.lower() == config.ADDR.lower():
                 wallet_balances = balances.get_for_addr(mg.id)
                 delta: XenBlocksWallet = mg.balance.difference(wallet_balances)
-                effect: float = calc_effect(mg.active_gpus, delta.block)
-                if effect < 30.0:
-                    print(f"Rebooting miner group: {mg.id}")
+                effect: float = calc_effect(mg.active_gpus, delta.block_per_hour())
+                if 0 <= effect <= 30.0:
+                    print(f"Rebooting miner group due to low effect: {effect}%")
                     self.reboot_miner_group(mg)
                 else:
-                    self.log_attention("No reboot!")
-
-        self.log_attention("Done!")
+                    print(f"Miner group effect: {effect}%")
+                    print(f"Delta block: {delta.block}")
 
 
     def kill_unable_to_start_instances(self, instances: list[VastInstance]):
@@ -341,7 +373,7 @@ class AutoMinerSM:
         for inst in instances:
 
             if inst.actual_status == "created" or inst.actual_status == "loading":
-                self.log_attention(f"Stopping id={inst.id} due to: Not started!")
+                self.log_attention(f"Stopping id={inst.cid} due to: Not started!")
                 to_kill.append(inst)
         #                self.kill_instance(inst)
 
@@ -384,7 +416,7 @@ class AutoMinerSM:
     #        if len(outbid_instances) > 0:
             for inst in outbid_instances:
                 self.automation.increase_bid_for_instance(inst, DFLOP_MIN_BID, 1.05)
-                self.log_attention(f"Increased bid for: {inst.id}")
+                self.log_attention(f"Increased bid for: {inst.cid}")
         else:
             self.log_attention(f"Skip bidding - enough active GPUs: '{self.get_active_gpus()}'")
 
@@ -412,7 +444,7 @@ class AutoMinerSM:
 
     def should_bid(self, instance: VastInstance):
         excluded = [10700258]
-        if instance.id in excluded:
+        if instance.cid in excluded:
             return False
 
         return instance.dflop_for_min_bid() > DFLOP_MIN_BID and instance.is_outbid()

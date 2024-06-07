@@ -18,7 +18,7 @@ class VastQuery:
         #'flops_per_dphtotal'
         self.price_increase_factor = 1.0
         self.location = ''
-        self.verified = True
+        self.verified = False
 
 
     @staticmethod

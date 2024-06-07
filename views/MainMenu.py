@@ -4,9 +4,9 @@ from views.BuyMenu import BuyMenu
 from views.TerminateMenu import TerminateMenu
 from views.OfflineMenu import OfflineMenu
 from Menu import *
-from MinerHistoryTable import MinerHistoryTable
+from MinerPerformanceTable import MinerPerformanceTable
 from VastCache import VastCache
-from AutoMinerSM import AutoMinerSM
+from VastTradingBotSM import VastTradingBotSM
 from HistoryManagerSM import HistoryManagerSM
 from statemachine.Controller import Controller
 from InstanceTable import InstanceTable
@@ -40,7 +40,7 @@ class MainMenu:
         self.terminate = terminate
         self.automation = Automation(vast)
         self.table = InstanceTable()
-        self.miner_group_table = MinerHistoryTable(VastCache(vast))
+        self.miner_group_table = MinerPerformanceTable(VastCache(vast))
 
 
     def start(self):
@@ -54,13 +54,13 @@ class MainMenu:
                 "0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a"]
 
         timestamp = int(datetime.now().timestamp())
-        rank200: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(170, timestamp)
+        rank150: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(150, timestamp)
         w1_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[0], timestamp)
         w2_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[1], timestamp)
         w3_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[2], timestamp)
 
-        if rank200:
-            log.info(LIGHT_PINK + "Rank 170: " + rank200.to_str())
+        if rank150:
+            log.info(LIGHT_PINK + "Rank 150: " + rank150.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w1_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w2_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w3_xuni.to_str())
@@ -163,7 +163,7 @@ class MainMenu:
     def auto_menu_selection(self, choice):
 
         if choice == '1':
-            AutoMinerSM(self.vast).start_mining()
+            VastTradingBotSM(self.vast).start_mining()
 
         if choice == '2':
             pass
@@ -175,7 +175,7 @@ class MainMenu:
 
         for inst in self.table.instances:
             if inst.is_running():
-                self.vast.reboot_instance(inst.id)
+                self.vast.reboot_instance(inst.cid)
 
 
     def shutdown_next_block(self):
@@ -189,7 +189,7 @@ class MainMenu:
             if self.table.tot_block > blocks:
                 for inst in self.table.instances:
                     if inst.is_running():
-                        self.vast.kill_instance(inst.id)
+                        self.vast.kill_instance(inst.cid)
 
             break
 

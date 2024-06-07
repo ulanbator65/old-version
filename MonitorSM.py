@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from VastClient import VastClient
 from db.HistoryManager import HistoryManager
 from VastCache import VastCache
-from MinerHistoryTable import MinerHistoryTable
+from MinerPerformanceTable import MinerPerformanceTable
 from statemachine.State import State
 from statemachine.StateMachine import StateMachine
 import logger as log
@@ -27,12 +27,12 @@ class MonitorSM:
     def __init__(self, vast: VastClient, history: HistoryManager, theme: int = 1):
         self.vast_cache = VastCache(vast)
         self.history_db = history
-        self.miner_group_table = MinerHistoryTable(self.vast_cache)
+        self.miner_group_table = MinerPerformanceTable(self.vast_cache)
         self.next_trigger = _get_next_event(FREQUENCY_M)
-        self.s_show_statistics = State(S_STARTED,
+        self.s_show_statistics = State(1, S_STARTED,
                                        [f"Monitor freqency {FREQUENCY_M} minutes"],
                                        self.state_show_statistics)
-        self.s_completed = State(S_DONE, [], self.state_completed)
+        self.s_completed = State(2, S_DONE, [], self.state_completed)
         self.sm = StateMachine("Monitor Miner Performance", [self.s_show_statistics, self.s_completed], theme)
 
 

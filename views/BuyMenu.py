@@ -144,7 +144,7 @@ class BuyMenu:
                 selected_offer = top_offers[index - 1]
                 print(f"Purchasing offer ID {selected_offer.id}")
                 self.vast.create_instance1(selected_offer)
-#                self.vast.create_instance(selected_offer['id'], selected_offer['dph_total'])
+#                self.vast.create_instance(selected_offer['cid'], selected_offer['dph_total'])
             else:
                 print(f"Invalid selection: {index}. Please try again.")
 
@@ -196,7 +196,7 @@ class BuyMenu:
         for idx, offer in enumerate(offers, start=1):
             f = Field(BuyMenu.dflops_color(offer.flops_per_dphtotal))
             number = f.format(str(idx))
-            offer_id = f.format(str(offer.id))
+            offer_id = f.format(str(offer.cid))
             gpu = f.format(offer.get('gpu_name').replace('_', ' '))
             quantity = f.format(str(offer.get('num_gpus', 'N/A')))
             price_hr = f.format(f"${offer.get('dph_total'):.3f}")

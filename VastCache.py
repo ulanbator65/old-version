@@ -27,15 +27,9 @@ class VastCache:
             data: dict = DbCache().get_entity(cache)
             rows = data.get('instances', [])
 
-            if len(rows) < 1:
-                raise Exception("WTF!!!")
-
             for json_data in rows:
                 inst = VastInstance(json_data)
                 instances.append(inst)
-
-            if len(instances) < 1:
-                log.error("No VAST instances found!!!")
 
         except requests.RequestException as e:
             log.error(f"Error fetching instances: {e}")
@@ -45,7 +39,7 @@ class VastCache:
 
     def get_selected_instances(self, ids: list[int]) -> list[VastInstance]:
         instances = self.get_instances()
-        iterator = filter(lambda x: x.id in ids, instances)
+        iterator = filter(lambda x: x.cid in ids, instances)
         result = list(iterator)
         return result
 

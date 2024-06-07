@@ -56,7 +56,7 @@ class MinerStatistics:
 
         # If miner was restarted, all counters are reset to zero - just save the hours offset
 #        if self.block <= 0:
-#            db.update(self.id, new_hours, 0)
+#            db.update(self.cid, new_hours, 0)
 #            self.duration_hours = 0.0
 #            return
 

@@ -2,7 +2,7 @@
 from datetime import datetime
 from views.BuyMenu import BuyMenu
 from Menu import *
-from MinerHistoryTable import MinerHistoryTable
+from MinerPerformanceTable import MinerPerformanceTable
 from db.XenBlocksWalletHistoryRepo import XenBlocksWalletHistoryRepo
 from HistoryManagerSM import HistoryManagerSM
 from InstanceTable import InstanceTable
@@ -88,7 +88,7 @@ class OfflineMenu:
 
         for inst in self.table.instances:
             if inst.is_running():
-                self.vast.reboot_instance(inst.id)
+                self.vast.reboot_instance(inst.cid)
                 time.sleep(5)
 
 
@@ -105,7 +105,7 @@ class OfflineMenu:
         instance = instance_table.get_instance_for_row(int(selected_row))
 
         if instance and instance.is_outbid():
-            print(f"Instance ID: {instance.id}")
+            print(f"Instance ID: {instance.cid}")
             confirm = input.get_choice(ORANGE + "\nConfirm increase bid for selected instance? (y/n): ").lower()
 
             if confirm.startswith('y'):

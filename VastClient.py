@@ -171,16 +171,16 @@ class VastClient:
 
         # No connection to Miner
         if not inst.is_running() or not inst.is_managed or not inst.get_miner_url():
-            log.info(f"Miner stats skipped for instance {inst.id} due to unavailable external port.")
+            log.info(f"Miner stats skipped for instance {inst.cid} due to unavailable external port.")
             inst.miner_status = "offline"
             return
 
         # Get Miner data
         try:
-            data = MinerDataCache(inst.id, inst.get_miner_url()).get_miner_data()
-#            data = MinerCache.get_miner_statistics(inst.id, inst.get_miner_url())
+            data = MinerDataCache(inst.cid, inst.get_miner_url()).get_miner_data()
+#            data = MinerCache.get_miner_statistics(inst.cid, inst.get_miner_url())
             if data:
-                inst.add_statistics(inst.id, data)
+                inst.add_statistics(inst.cid, data)
                 inst.miner_status = "online"
             else:
                 inst.miner_status = "offline"
@@ -191,7 +191,7 @@ class VastClient:
             inst.miner_status = "offline"
 #            inst.miner = None
 #            traceback.print_exc()
-#            log.info(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.id}: {e}")
+#            log.info(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.cid}: {e}")
 
 
     def get_miner_statistics_delete(self, inst: VastInstance, stats):
@@ -202,7 +202,7 @@ class VastClient:
 
         # No connection to Miner
         if not inst.is_managed or not inst.get_miner_url():
-            log.info(f"Miner stats skipped for instance {inst.id} due to unavailable external port.")
+            log.info(f"Miner stats skipped for instance {inst.cid} due to unavailable external port.")
             #            inst.miner_status = "offline"
             return
 
@@ -210,23 +210,23 @@ class VastClient:
         try:
             response = requests.get(inst.get_miner_url(), timeout=5)
             if response.status_code == 200:
-                inst.add_statistics(inst.id, response.json())
+                inst.add_statistics(inst.cid, response.json())
                 inst.miner_status = "online"
             else:
                 inst.miner_status = "offline"
                 inst.reset_statistics()
-                log.info(f"Failed to get miner data from {inst.get_miner_url()} for instance {inst.id}: Status code {response.status_code}")
+                log.info(f"Failed to get miner data from {inst.get_miner_url()} for instance {inst.cid}: Status code {response.status_code}")
 
         except Exception as e:
             inst.miner_status = "offline"
             #            inst.miner = None
             traceback.print_exc()
-            log.error(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.id}: {e}")
+            log.error(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.cid}: {e}")
 
 
     def is_blacklisted(self, instance) -> bool:
         for inst in self.blacklist:
-            if instance.id == inst:
+            if instance.cid == inst:
                 return True
 
         return False
