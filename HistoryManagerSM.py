@@ -37,10 +37,10 @@ class HistoryManagerSM:
         self.history_db = history
         self.next_trigger = _get_next_event(FREQUENCY_M)
         self.next_reboot = _get_next_event(2 * 60)
-        self.s_save_to_history = State(S_STARTED,
+        self.s_save_to_history = State(1, S_STARTED,
                                        [f"Save history freqency {FREQUENCY_M}"],
                                        self.state_save_to_history)
-        self.s_completed = State(S_DONE, [], self.state_completed)
+        self.s_completed = State(2, S_DONE, [], self.state_completed)
         self.sm = StateMachine("History Manager", [self.s_save_to_history, self.s_completed], theme)
 
 
@@ -83,9 +83,9 @@ class HistoryManagerSM:
         # Reboot VAST instances if time is right (every 2 hours)
         if time_tick.timestamp() > self.next_reboot.timestamp():
             self.next_reboot = _get_next_event(8 * 60)
-            self.reboot_instances()
+#            self.reboot_instances()
 
-        # Next trigge
+        # Next trigger
         if time_tick.timestamp() > self.next_trigger.timestamp():
             self.next_trigger = _get_next_event(FREQUENCY_M)
             return self.s_save_to_history
@@ -99,7 +99,7 @@ class HistoryManagerSM:
         all_instances = self.get_vast_instances()
 
         for inst in all_instances:
-            self.log_attention(f"Rebooting id={inst.id}!")
+            self.log_attention(f"Rebooting id={inst.cid}!")
             self.reboot(inst)
 
         self.log_attention("Done!")
@@ -107,7 +107,7 @@ class HistoryManagerSM:
 
     def reboot(self, inst: VastInstance):
         if inst.is_running():
-            self.vast.reboot_instance(inst.id)
+            self.vast.reboot_instance(inst.cid)
 
 
     def get_vast_instances(self) -> list[VastInstance]:

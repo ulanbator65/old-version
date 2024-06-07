@@ -1,4 +1,5 @@
 
+from cachetools import cached, TTLCache
 import requests
 from requests import Response
 import logger as log
@@ -19,7 +20,7 @@ LEADERBOARD_URL = f"{CUSTOM_SERVER_URL}/leaderboard"
 
 class XenBlocks:
     def __init__(self):
-        pass
+        self.is_connected: bool = True
 
 
     def get_balance(self, account: str) -> int:
@@ -27,10 +28,12 @@ class XenBlocks:
         try:
             response = requests.get(BALANCE_URL, params=params, timeout=15)
             response.raise_for_status()
+            self.is_connected = True
             return int(response.json().get('total_blocks', 0))
 
         except requests.RequestException as e:
             log.error(f"Error getting balance: {e}")
+            self.is_connected = False
             return 0
 
 
@@ -39,10 +42,12 @@ class XenBlocks:
         try:
             response = requests.get(DIFFICULTY_URL, headers=headers, timeout=5)
             response.raise_for_status()
+            self.is_connected = True
             return int(response.json().get('difficulty', 0))
 
         except requests.RequestException as e:
             log.error(f"Error getting difficulty: {e}")
+            self.is_connected = False
             return 0
 
 
@@ -51,8 +56,10 @@ class XenBlocks:
         text = self.get_leaderboard()
 #        print(text[1100:1800])
 #        text = "abc123 <tbody> <tr> <td>2</td> <td>0x7d39f1372f95fbb67d259ac26443b69eb944f1d0</td> <td>385384</td> <td>504</td> <!-- New cell --> <td>100000.0</td> <!-- Moved to last position --> </tr> </tbody> 123 efg"
+        self.is_connected = True
 
         if not text:
+            self.is_connected = False
             return []
 
         tbody: list = get_elements("<tbody>", "</tbody>", text)
@@ -82,11 +89,18 @@ class XenBlocks:
         try:
             response: Response = requests.get(LEADERBOARD_URL, headers=headers, timeout=25)
             response.raise_for_status()
+            self.is_connected = True
             return response.content.decode("utf-8")
 
         except requests.RequestException as e:
             log.error(f"Error getting wallet balances: {e}")
+            self.is_connected = False
             return None
+
+
+    @cached(cache=TTLCache(maxsize=1, ttl=3*60))
+    def _is_connnnected(self):
+        return self.is_connected
 
 
 def map_fields(fields: list, timestamp_s: int) -> XenBlocksWallet:

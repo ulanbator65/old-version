@@ -38,11 +38,11 @@ class XenBlocksWallet:
         return self.timestamp_s / 3600
 
 
-    def block_rate(self):
+    def block_per_hour(self):
         return self.block / self.duration_hours()
 
 
     def block_cost(self):
-        block_rate = self.block_rate()
-        return self.cost_per_hour / block_rate if block_rate > 0 else 0.0
+        block_rate = self.block_per_hour()
+        return (self.duration_hours() * self.cost_per_hour / block_rate) if block_rate > 0 else 0.0
 

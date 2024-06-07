@@ -33,13 +33,13 @@ class TerminateMenu:
             if VastInstanceRules.is_dead(inst.actual_status):
 
                 print("\nIdentified dead instances for termination:")
-                print(f"Instance ID: {inst.id}")
+                print(f"Instance ID: {inst.cid}")
                 dead_instances.append(inst)
 
                 confirm = input.get_choice("\nConfirm termination of all identified dead instances? (y/n): ").lower()
 
                 if confirm.startswith('y'):
-                    self.vast.kill_instance(inst.id)
+                    self.vast.kill_instance(inst.cid)
                 else:
                     print("Operation cancelled.")
 

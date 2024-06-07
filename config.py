@@ -9,6 +9,8 @@ API_KEY = os.getenv('API_KEY')
 ADDR = os.getenv('ADDR')
 VAST_IMAGE = os.getenv('VAST_IMAGE')
 
+MAX_GPU = os.getenv('MAX_GPU')
+
 MANUAL_MODE = (os.getenv('MANUAL_MODE') == 'True')
 SHOW_MINER_GROUPS = (os.getenv('SHOW_MINER_GROUPS') == 'True')
 

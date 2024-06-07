@@ -51,6 +51,10 @@ class DbCache:
 
 
     def update(self, key: str, value: str):
+        if not value:
+            log.error("Caoonot store value for key '{key}': value is empty!")
+            return
+
         params: tuple = (int(datetime.now().timestamp()), value, key)
 
         existing_value = self.get(key)

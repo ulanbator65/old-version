@@ -4,7 +4,7 @@ from db.AbstractCache import AbstractCache
 from XenBlocks import XenBlocks
 
 
-TTL_S = 20
+TTL_S = 30
 KEY = "difficulty"
 
 

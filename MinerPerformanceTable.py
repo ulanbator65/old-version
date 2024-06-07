@@ -26,7 +26,7 @@ addr_list: list = ["0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a".lower(),
                    ]
 
 
-class MinerHistoryTable:
+class MinerPerformanceTable:
 
     def __init__(self, vast_cache: VastCache):
 
@@ -112,11 +112,11 @@ class MinerHistoryTable:
         self.miner_groups = sorted(self.miner_groups, key=lambda x: x.cost_ph, reverse=True)
 
     def get_id_for_row(self, row_nr) -> int:
-        return self.vast_instances[row_nr - 1].id
+        return self.vast_instances[row_nr - 1].cid
 
 
     def get_ids_for_index(self, index: list) -> list:
-        return [self.vast_instances[num - 1].id for num in index]
+        return [self.vast_instances[num - 1].cid for num in index]
 
 
     def _print_table(self):
@@ -256,23 +256,23 @@ class MinerHistoryTable:
 
         if delta_1:
             delta_1.cost_per_hour = mg.cost_ph
-            block_rate1 = delta_1.block_rate()
+            block_rate1 = delta_1.block_per_hour()
             block_cost = delta_1.block_cost()
 
-            block_rate2 = delta_2.block_rate() if delta_2 else 0.0
+            block_rate2 = delta_2.block_per_hour() if delta_2 else 0.0
             block_cost_2 = mg.cost_ph / block_rate2 if block_rate2 > 0 else 0.0
 
             block_per_day = delta_day.block if delta_day else 0
             block_cost_day = mg.cost_ph / block_per_day if block_per_day > 0 else 0.0
 
             return [
-                str(mg.id[0:8]+"..."),
+                str(mg.id[0:8] + "..."),
                 f"{mg.active_gpus}/{mg.total_gpus}",
                 f"${mg.cost_ph:.3f}",
                 "",
                 f"{mg.dflop:.0f}",
                 # 5
-                f"{int(calc_effect(mg.active_gpus, delta_1.block)):} %",
+                f"{int(calc_effect(mg.active_gpus, delta_1.block_per_hour())):} %",
                 f"{delta_1.duration_hours():.1f}",
                 to_string(block_rate1),
                 to_string(block_rate2),
@@ -288,13 +288,13 @@ class MinerHistoryTable:
             ]
         else:
             return [
-                str(mg.id[0:8]+"..."),
+                str(mg.id[0:8] + "..."),
                 f"{mg.active_gpus}/{mg.total_gpus}",
                 f"${mg.cost_ph:.3f}",
                 "",
                 f"{mg.dflop:.0f}",
                 # 5
-                f"{int(calc_effect(mg.active_gpus, 0)):} %",
+                f"{int(calc_effect(mg.active_gpus, 0.0)):} %",
                 "",
                 "",
                 "",
@@ -312,7 +312,7 @@ class MinerHistoryTable:
 
     def get_totals_row(self) -> list:
 #        effect = (self.tot_block / self.tot_active_gpus) * 100 if self.tot_active_gpus > 0 else 0
-        effect = calc_effect(self.tot_active_gpus, self.tot_block)
+        effect = calc_effect(self.tot_active_gpus, self.tot_block_rate1)
         return [
             # Vast instance
             "",
@@ -482,14 +482,14 @@ def block_cost_to_string(value: float):
 #
 #      Effect calculationn based on how many blocks each gpu produces per hour
 #
-def calc_effect(gpus: int, block: int) -> float:
+def calc_effect(gpus: int, block_rate: float) -> float:
     if gpus == 0:
         return 0.0
 
     #  One gpu is estimated to produce x nr of blocks per hour,
     #  which equals the effect of 100 %
     #  Example: 0.8 block per gpu at difficulty 90K
-    estimated_block_per_gpu = 0.8
+    estimated_block_per_gpu = 1.0
 
-    block_per_gpu = (100 * block / (gpus * estimated_block_per_gpu))
+    block_per_gpu = (100 * block_rate / (gpus * estimated_block_per_gpu))
     return block_per_gpu

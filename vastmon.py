@@ -12,7 +12,7 @@ from views.TerminateMenu import *
 from statemachine.Controller import Controller
 from HistoryManagerSM import HistoryManagerSM
 from db.HistoryManager import HistoryManager
-from AutoMinerSM import AutoMinerSM
+from VastTradingBotSM import VastTradingBotSM
 from MonitorSM import MonitorSM
 import app_config as app
 import config as config
@@ -49,7 +49,7 @@ def main():
 
 
     if "Auto_Miner".upper() in config.RUN_STATE_MACHINES:
-        auto = AutoMinerSM(vast, 1).get_state_machine()
+        auto = VastTradingBotSM(vast, 1).get_state_machine()
         controller.add_state_machine(auto)
 
     if "History".upper() in config.RUN_STATE_MACHINES:

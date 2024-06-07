@@ -38,7 +38,7 @@ class VastMinerRealtimeTable:
 
     def get_instance(self, id: int) -> VastInstance:
         for inst in self.instances:
-            if inst.id == id:
+            if inst.cid == id:
                 return inst
         return None
 
@@ -56,11 +56,11 @@ class VastMinerRealtimeTable:
         self.instances = sorted(self.instances, key=lambda inst: (inst.block_cost()))
 
     def get_id_for_row(self, row_nr) -> int:
-        return self.instances[row_nr - 1].id
+        return self.instances[row_nr - 1].cid
 
 
     def get_ids_for_index(self, index: list) -> list:
-        return [self.instances[num - 1].id for num in index]
+        return [self.instances[num - 1].cid for num in index]
 
 
     def should_refresh_cache(self):
@@ -204,7 +204,7 @@ class VastMinerRealtimeTable:
 
         return [
             str(row_nr),
-            str(ins.id),
+            str(ins.cid),
             str(ins.num_gpus) + " " + str(ins.gpu_name_short),
             f"${ins.cost_per_hour:.3f}",
             f"{ins.flops_per_dphtotal:.0f}",
@@ -268,7 +268,7 @@ class VastMinerRealtimeTable:
         hpd = inst.last_active.strftime('%m-%d %H:%M') if inst.last_active else "-"
         return [
             str(row_nr),
-            str(inst.id),
+            str(inst.cid),
             str(inst.num_gpus) + " " + str(inst.gpu_name_short),
             f"${inst.cost_per_hour:.3f}",
             f"{inst.flops_per_dphtotal:.0f}",

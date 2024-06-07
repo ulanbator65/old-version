@@ -23,7 +23,7 @@ class Automation:
         for inst in selected:
             if (inst.actual_status == "created"):
                 if "A40" in inst.gpu_name:
-                    self.vast.kill_instance(inst.id)
+                    self.vast.kill_instance(inst.cid)
 
 
     def kill_all_running_instances(self):
@@ -34,7 +34,7 @@ class Automation:
         for inst in selected:
 #            if inst.is_running() or (inst.actual_status == "created"):
             if "A40" in inst.gpu_name:
-                self.vast.kill_instance(inst.id)
+                self.vast.kill_instance(inst.cid)
 
 
     def runBot(self):
@@ -74,15 +74,15 @@ class Automation:
             price = inst.cost_per_hour * bid_factor
             # Faster bid rate at higher DFLOPs
             if inst.flops_per_dphtotal > 900:
-                price = inst.cost_per_hour * 1.08
+                price = inst.cost_per_hour * 1.06
 
-            print("Found outbid instance: ", inst.id)
+            print("Found outbid instance: ", inst.cid)
             print("Current Price: ", inst.cost_per_hour)
             print("Current DFLOP: ", inst.flops_per_dphtotal)
             print("Bid Price: ", inst.min_bid)
             print("Bid DFLOP: ", inst.dflop_for_min_bid())
             print("Adjusted Price: ", price)
-            self.vast.increase_bid(inst.id, price)
+            self.vast.increase_bid(inst.cid, price)
         else:
             print(f"Is outbid: {inst.is_outbid()}")
             print(f"Bid DFLOP:  {inst.dflop_for_min_bid()}")
