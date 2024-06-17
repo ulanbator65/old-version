@@ -58,8 +58,10 @@
 'status_msg': 'success, running smit1237/xengpuminer:vast',
 'gpu_util': 93.999908,
 'disk_util': 0.02500000037252903,
-'disk_usage': 0.02500000037252903, 'gpu_temp': 49.999954, 'local_ipaddrs': '10.100.0.143 172.17.0.1 \n',
-'direct_port_end': 14393, 'direct_port_start': 14329, 'cpu_util': 33.52, 'mem_usage': 0.1509376,
+'disk_usage': 0.02500000037252903,
+'gpu_temp': 49.999954, 'local_ipaddrs': '10.100.0.143 172.17.0.1 \n',
+'direct_port_end': 14393, 'direct_port_start': 14329,
+'cpu_util': 33.52, 'mem_usage': 0.1509376,
 'mem_limit': 11.13587712, 'vmem_usage': 47.493118, 'machine_dir_ssh_port': 14399,
 'ports': {
 '22/tcp': [{'HostIp': '0.0.0.0', 'HostPort': '14380'}, {'HostIp': '::', 'HostPort': '14380'}],

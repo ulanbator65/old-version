@@ -16,7 +16,7 @@ class AbstractCache:
         return None
 
 
-    def entity_to_string(self, entity):
+    def entity_to_string(self, entity) -> str:
         return ""
 
 

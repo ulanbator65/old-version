@@ -20,6 +20,7 @@ class VastInstance:
         self.image = json.get('image_uuid')
         self.is_managed: bool = not self._is_manual_instance()
         self.cid: int = json.get('id')
+        self.offer_id = 0
         self.min_bid: float = json.get('min_bid')
         self.start_date = json.get('start_date', None)
         self.duration = json.get('duration', None)
@@ -31,6 +32,7 @@ class VastInstance:
         self.gpu_name: str = json.get('gpu_name', '')
         self.gpu_name_short: str = self.gpu_name.replace("RTX ", "")
         self.num_gpus: int = json.get('num_gpus', 0)
+        self.gpu_effect: int = json.get('gpu_util', 99)
         self.total_flops: float = json.get('total_flops', 0)
         self.flops_per_dphtotal: int = int(json.get('flops_per_dphtotal', 0))
 #        self.flops_per_dphtotal = self.total_flops / self.min_bid
