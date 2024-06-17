@@ -9,7 +9,7 @@ from Automation import Automation
 import config
 from constants import *
 from input import text_color
-import input
+import input as inp
 
 
 class BuyMenu:
@@ -100,7 +100,7 @@ class BuyMenu:
 
 
     def purchase_offer(self, offer: VastOffer):
-        confirm = input.get_choice("\nConfirm purchase? (y/n): ").lower()
+        confirm = inp.get_choice("\nConfirm purchase? (y/n): ").lower()
 
         if confirm.startswith('y'):
             result = self.create_instance(offer)
@@ -109,7 +109,7 @@ class BuyMenu:
             print("Operation cancelled!")
 
 
-    def create_instance(self, offer: VastOffer) -> dict:
+    def create_instance(self, offer: VastOffer) -> int:
         print("Price: ", offer.dph_total)
         price = offer.increase_price(1)
         print("Adjusted Price: ", price)
@@ -117,14 +117,14 @@ class BuyMenu:
         return self.vast.create_instance(config.ADDR, offer.id, price)
 
 
-    def print_result(self, result: dict, id: int):
+    def print_result(self, result: int, id: int):
         table: ColorTable = ColorTable(theme=THEME2)
         table.field_names = ["Offer ID", "Response from Vast.ai", "State"]
 
         if result:
             print("Result: ", result)
             response_from_vast = "Started"
-            state = "Success: True" if result.get('success') else "Success: False"
+            state = "Success: True" if result > 0 else "Success: False"
             row = [text_color(str(id)), text_color(response_from_vast), text_color(state)]
             table.add_row(row)
         else:
@@ -144,7 +144,7 @@ class BuyMenu:
                 selected_offer = top_offers[index - 1]
                 print(f"Purchasing offer ID {selected_offer.id}")
                 self.vast.create_instance1(selected_offer)
-#                self.vast.create_instance(selected_offer['cid'], selected_offer['dph_total'])
+#                self.vast.create_instance(selected_offer['id'], selected_offer['dph_total'])
             else:
                 print(f"Invalid selection: {index}. Please try again.")
 
@@ -196,7 +196,7 @@ class BuyMenu:
         for idx, offer in enumerate(offers, start=1):
             f = Field(BuyMenu.dflops_color(offer.flops_per_dphtotal))
             number = f.format(str(idx))
-            offer_id = f.format(str(offer.cid))
+            offer_id = f.format(str(offer.id))
             gpu = f.format(offer.get('gpu_name').replace('_', ' '))
             quantity = f.format(str(offer.get('num_gpus', 'N/A')))
             price_hr = f.format(f"${offer.get('dph_total'):.3f}")

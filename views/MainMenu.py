@@ -131,7 +131,7 @@ class MainMenu:
 
         elif choice == INCREASE_BID:
 #            pass
-            self.automation.increase_bid(self.table.instances, 500)
+            self.automation.increase_bid(self.table.instances, 900)
 
         elif choice == M_RESET:
             self.table.reset_hours()
