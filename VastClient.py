@@ -1,10 +1,10 @@
 
 import threading
-import requests
 import traceback
 import json
 from datetime import datetime
 
+from VastTemplate import VastTemplate
 from VastAiCLI import VastAiCLI
 from VastQuery import VastQuery
 from VastInstance import VastInstance
@@ -13,6 +13,7 @@ from XenBlocks import *
 from Billing import Billing
 from MinerDataCache import MinerDataCache
 from db.DbCache import DbCache
+from OfferMap import OfferMap
 from Field import Field
 from constants import *
 from tostring import auto_str
@@ -32,10 +33,11 @@ MINUTES = 60*SECONDS
 
 @auto_str
 class VastClient:
-    def __init__(self, api_key, blacklist, vast_cmd: VastAiCLI = VastAiCLI(config.DB_NAME)):
+    def __init__(self, api_key, blacklist, vast_cli: VastAiCLI = VastAiCLI(config.DB_NAME)):
         self.api_key = api_key
         self.blacklist = blacklist
-        self.vast_cmd = vast_cmd
+        self.vast_cli = vast_cli
+        self.load_miner_stats = False
 
 
     def get_instances(self) -> list[VastInstance]:
@@ -49,6 +51,12 @@ class VastClient:
 
             for json_data in rows:
                 inst = self.instance_from_json(json_data)
+
+#                key = f"offer:{inst.cid}"
+                offer_id = OfferMap().get(inst.cid)
+                if offer_id:
+                    inst.offer_id = offer_id
+
                 instances.append(inst)
 
             if len(instances) < 1:
@@ -64,22 +72,30 @@ class VastClient:
         return VastInstance(json)
 
 
-    def create_instance(self, addr: str, instance_id: int, price: float) -> int:
-        cmd = VastAiCLI(self.api_key)
+    def create_instance(self, addr: str, offer_id: int, price: float, template: VastTemplate) -> int:
+#        cli = VastAiCLI(self.api_key)
 
         if not config.MANUAL_MODE:
-            response = cmd.create(addr, instance_id, price)
+            cmd = template.get_create_cmd(addr, offer_id, price)
+            response = self.vast_cli.execute_cmd(cmd)
+#            response = self.vast_cli.create(addr, offer_id, price, template)
         else:
-            response = cmd.create_manual_instance(addr, instance_id, price)
+            response = self.vast_cli.create_manual_instance(addr, offer_id, price)
 
+        print(response)
         contract_id = int(response.get('new_contract'))
-        log.warning(f"Created instance for offer id {instance_id}! Contract id = {contract_id}")
+        log.warning(f"Created instance for offer id {offer_id}! Contract id = {contract_id}")
+
+        #        key = f"offer:{contract_id}"
+        #        DbCache().update(key, str(instance_id))
+        OfferMap().put(contract_id, offer_id)
+
         return contract_id
 
 
     def increase_bid(self, instance_id: int, new_price: float):
-        cmd = VastAiCLI(self.api_key)
-        cmd.change_bid(instance_id, new_price)
+        cli = VastAiCLI(self.api_key)
+        cli.change_bid(instance_id, new_price)
 
 
     @cached(cache=TTLCache(maxsize=1, ttl=1*MINUTES))
@@ -126,19 +142,8 @@ class VastClient:
             print(f.format(f"Failed to terminate instance {ids}."))
 
 
-    def get_offer_for_instance(self, instance_id: int) -> list:
-        query = VastQuery.instance_query(instance_id, 2.0)
-
-        result = self.vast_cmd.get_offers(query)
-
-        iterator = filter(lambda x: (x.get('id') == instance_id), result)
-#        iterator = filter(self.is_same, result)
-#        iterator = filter(InstanceTable.is_managed, result)
-        return list(iterator)
-
-
     def get_offers(self, query: VastQuery) -> list[VastOffer]:
-        return self.vast_cmd.get_offers(query)
+        return self.vast_cli.get_offers(query)
 
 
     def get_query_string(self, model: str, query: VastQuery) -> str:
@@ -165,7 +170,7 @@ class VastClient:
 
     def get_miner_statistics(self, inst: VastInstance, stats):
         # Instance stopped
-        if not inst.is_running():
+        if not inst.is_running() or not self.load_miner_stats:
 #            inst.miner_status = "offline"
             return
 
@@ -192,36 +197,6 @@ class VastClient:
 #            inst.miner = None
 #            traceback.print_exc()
 #            log.info(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.cid}: {e}")
-
-
-    def get_miner_statistics_delete(self, inst: VastInstance, stats):
-        # Instance stopped
-        if not inst.is_running():
-            #            inst.miner_status = "offline"
-            return
-
-        # No connection to Miner
-        if not inst.is_managed or not inst.get_miner_url():
-            log.info(f"Miner stats skipped for instance {inst.cid} due to unavailable external port.")
-            #            inst.miner_status = "offline"
-            return
-
-        # Get Miner data
-        try:
-            response = requests.get(inst.get_miner_url(), timeout=5)
-            if response.status_code == 200:
-                inst.add_statistics(inst.cid, response.json())
-                inst.miner_status = "online"
-            else:
-                inst.miner_status = "offline"
-                inst.reset_statistics()
-                log.info(f"Failed to get miner data from {inst.get_miner_url()} for instance {inst.cid}: Status code {response.status_code}")
-
-        except Exception as e:
-            inst.miner_status = "offline"
-            #            inst.miner = None
-            traceback.print_exc()
-            log.error(f"Error getting miner data from {inst.get_miner_url()} for instance {inst.cid}: {e}")
 
 
     def is_blacklisted(self, instance) -> bool:

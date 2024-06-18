@@ -1,0 +1,6 @@
+
+sudo sed -i 's/account = 0x24691e54afafe2416a8252097c9ca67557271475/account = 0xD76cb96Ac40FD3510648419925A645465570c822/g' config.conf > /dev/null 2>&1
+echo "STEP 8 of 10: Replaced ETH address"
+
+
+

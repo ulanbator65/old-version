@@ -1,1 +1,14 @@
-123
+
+
+
+
+vastai create instance 9355258 --price 0.17 --image nvidia/cuda:12.0.1-devel-ubuntu20.04 --env '-e ACCOUNT=0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a' --onstart sudo apt-get update &>/dev/null || apt-get update &>/dev/null && \ sudo apt-get install -y git &>/dev/null || apt-get install -y sudo git &>/dev/null && \ git clone https://github.com/samotpoint/XENGPUMiner-monitoring.git || echo "Skip cloning XENGPUMiner-monitoring" && \ cd XENGPUMiner-monitoring && \ sudo chmod -R 700 scripts && \ scripts/boot.sh --disk 7.944739963496298 --ssh
+
+
+
+vastai create instance 9355258 --price 0.17 --image nvidia/cuda:12.0.1-devel-ubuntu20.04 --env '-e ACCOUNT=0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a' --onstart sudo apt-get update &>/dev/null || apt-get update &>/dev/null && sudo apt-get install -y git &>/dev/null || apt-get install -y sudo git &>/dev/null && git clone https://github.com/samotpoint/XENGPUMiner-monitoring.git || echo "Skip cloning XENGPUMiner-monitoring" && cd XENGPUMiner-monitoring && sudo chmod -R 700 scripts && scripts/boot.sh --disk 7.944739963496298 --ssh
+
+vastai create instance 9355258 --price 0.17 --image nvidia/cuda:12.0.1-devel-ubuntu20.04 --env '-e ACCOUNT=0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a' --onstart sudo apt-get update &>/dev/null --disk 7.944739963496298 --ssh
+
+
+vastai create instance 9355258 --price 0.17 --image nvidia/cuda:12.0.1-devel-ubuntu20.04 --env '-e ACCOUNT=0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a' --onstart "onstart.txt" --disk 7.944739963496298 --ssh

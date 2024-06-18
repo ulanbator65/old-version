@@ -20,7 +20,9 @@ class XenblocksBalanceCache(AbstractCache):
 
 
     def get_entity(self) -> int:
-        return XenBlocks().get_balance(self.addr)
+        value = XenBlocks().get_balance(self.addr)
+#        print("Actual: ", value)
+        return value
 
 
     def entity_to_string(self, entity: int):
