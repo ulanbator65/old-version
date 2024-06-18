@@ -6,6 +6,9 @@ from VastInstance import *
 from VastClient import VastClient
 from VastCache import VastCache
 from VastOffer import VastOffer
+from VastTemplate import VastTemplate
+from db.VastOfferRepo import VastOfferRepo
+from OfferMap import OfferMap
 import config
 from Field import *
 from statemachine.StateMachine import State, StateMachine
@@ -31,17 +34,19 @@ S_MANAGE_MINERS = "Manage Miners"
 S_PURGE = "Purge underperforming instance"
 S_INCREASE_BID = "Increase bid"
 
-DFLOP_MIN_BID = 950
-DFLOP_KEEP = 950
-DFLOP_BUY = 990
+DFLOP_MIN_BID = 1150
+DFLOP_KEEP = 1150
+DFLOP_BUY = 1150
 
 MIN_HASH_PER_GPU = 2100
 # Minimum hashrate per dollar, purge instances below
-HASH_PER_USD_MIN: int = 80000
+HASH_PER_USD_MIN: int = 82000
 
 
 MAX_ALLOCATED_GPUS = int(config.MAX_GPU)
 MAX_ACTIVE_GPUS = 28
+
+TARGET_BLOCK_COST = 0.033
 
 
 #
@@ -63,6 +68,7 @@ class VastTradingBotSM:
 
     def __init__(self, vast: VastClient, theme: int = 1):
         self.vast: VastClient = vast
+        self.template = VastTemplate(config.API_KEY)
         self.vast_cache: VastCache = VastCache(vast)
         self.automation = Automation(vast)
         self.difficulty: int = Cache.get_difficulty()
@@ -84,13 +90,9 @@ class VastTradingBotSM:
                                  [f""],
                                  self.state_sell_gpus)
 
-#        self.s_manage_miners = State(4, S_MANAGE_MINERS,
-#                                     [f"Wait for miners to start up completely"],
-#                                     self.state_manage_started_miners)
-
-        self.s_mining = State(4, S_MANAGE_MINERS,
-                              [f"Just keep mining..."],
-                              self.state_manage_miners)
+        self.s_manage_miners = State(4, S_MANAGE_MINERS,
+                                     [f"Just keep mining..."],
+                                     self.state_manage_miners)
 
         self.s_purge = State(5, S_PURGE,
                              [f"Purge underperforming instances..."],
@@ -99,7 +101,7 @@ class VastTradingBotSM:
         self.s_increase_bid = State(6, S_INCREASE_BID, ["Buying cheap miners"], self.state_increase_bids)
 
         self.sm = StateMachine("Auto Miner",
-                               [self.s_started, self.s_sell_gpus, self.s_buy_gpus, self.s_mining],
+                               [self.s_started, self.s_sell_gpus, self.s_buy_gpus, self.s_manage_miners],
                                theme)
 
 
@@ -136,8 +138,10 @@ class VastTradingBotSM:
 
 
     def state_manage_miners(self, time_tick: datetime) -> State:
-        log.info(f"Mining...")
-        self.handle_problematic_instances()
+        log.info(f"Manage miners...")
+
+        all_instances = self.get_vast_instances()
+        self.handle_low_performing_instances(all_instances, HASH_PER_USD_MIN)
 
         return self.get_next_state(time_tick)
 
@@ -151,10 +155,10 @@ class VastTradingBotSM:
         self.log_attention("Increase bids...")
 
         instances = self.get_vast_instances()
+        VastMinerRealtimeTable(instances).print_table()
+
         if instances:
             self.increase_bid(instances)
-
-        VastMinerRealtimeTable(instances).print_table()
 
         self.log_attention("Done!")
         return self.get_next_state(time_tick)
@@ -168,7 +172,7 @@ class VastTradingBotSM:
         # A large change in difficulty indicates that the state machine just started or some other (network?) problem
         if 1 < difference < 6000:
             self.log_attention("Reboot instances due to change in difficulty!")
-            self.reboot_instances()
+#            self.reboot_instances()
 
         if new_difficulty > 0:
             self.difficulty = new_difficulty
@@ -186,16 +190,16 @@ class VastTradingBotSM:
 
         # Kill Outbid Miners
         elif state == self.s_sell_gpus:
-            return self.s_mining
+            return self.s_manage_miners
 
         # Manage Miners
 #        elif state == self.s_manage_miners:
-#            return self.s_mining
+#            return self.s_manage_miners
 
         # Mine
-        elif state == self.s_mining:
+        elif state == self.s_manage_miners:
             self.count += 1
-            if self.count >= 2:
+            if self.count >= 1:
                 self.count = 0
                 return self.s_purge
 
@@ -220,10 +224,6 @@ class VastTradingBotSM:
             offers: list[VastOffer] = self.automation.offers_A5000(dflop_min)
 #            offers2: list[VastOffer] = self.automation.offers_A4000()
 #            offers = offers + offers2
-
-            for offer in offers:
-                key = f"offer:{offer.id}"
-                DbCache().update(key, str(offer.json))
 
             self.started_instances = self.buy_miners(dflop_min, offers)
         else:
@@ -254,11 +254,17 @@ class VastTradingBotSM:
 
             if inst.is_miner_online() and inst.hashrate() < 444:
                 print(f"Kill instance due to Hashrate is zero ({inst.hashrate()})")
-                self.kill_instance(inst)
+#                offer_id = OfferMap().get(inst.cid)
+#                VastOfferRepo().put(offer_id, True)
+#                self.kill_instance(inst)
 
             elif (hpd > 1) and (hpd < HASH_PER_USD_MIN):
                 print(f"Killing instance due to Hashrate Per USD below minimum: {hpd}")
-                self.kill_instance(inst)
+#                self.kill_instance(inst)
+
+            elif hpd > 220000:
+                print(f"Killing instance due to Hashrate Per USD above minimum: {hpd}")
+#                self.kill_instance(inst)
 
         self.log_attention("Done!")
 
@@ -274,13 +280,13 @@ class VastTradingBotSM:
             #  but I still don't own the instance. So I will delete my bid
             if inst.is_outbid() and (inst.flops_per_dphtotal < (inst.dflop_for_min_bid() - 4)):
                 log.error(f"Suspicious instance, will be deleted: {inst.cid}")
-                delete = True
+#                delete = True
 
             elif not inst.is_running() and (inst.dflop_for_min_bid() < DFLOP_KEEP):
+                self.log_attention(f"Stopping id={inst.cid} due to outbid:  Instance DFLOP min bid: {int(inst.dflop_for_min_bid())}")
                 delete = True
 
             if delete:
-                self.log_attention(f"Stopping id={inst.cid} due to outbid:  Instance DFLOP min bid: {int(inst.dflop_for_min_bid())}")
                 self.kill_instance(inst)
 
         self.log_attention("Done!")
@@ -316,7 +322,8 @@ class VastTradingBotSM:
         for inst in mg.instances:
             next_reboot = datetime.fromtimestamp(inst.last_rebooted) + timedelta(minutes=45)
             if inst.is_running() and now > next_reboot.timestamp():
-                self.reboot(inst)
+#                self.reboot(inst)
+                pass
             else:
                 self.log_attention(f"Next reboot = {next_reboot}")
 
@@ -327,38 +334,48 @@ class VastTradingBotSM:
         for inst in instances:
             hpg: int = inst.hashrate_per_gpu()
             hpd: int = inst.hashrate_per_dollar()
+            effect = int(inst.gpu_effect) if inst.gpu_effect else 0
 
             # Sometimes miner doesn't start up directly - can be solved by re-starting the instance
             if inst.is_miner_online() and hpd <= 0:
-                #                print_attention(f"Stopping cid={inst.cid} due to: hashrate is zero")
-                print(f"Rebooting due to Hashrate is zero ({hpd})")
-                self.reboot(inst)
+#                print_attention(f"Stopping cid={inst.cid} due to: hashrate is zero")
+#                print(f"Rebooting due to Hashrate is zero ({hpd})")
+#                self.reboot(inst)
+                pass
 
             elif not inst.is_running():
                 pass
 
+            elif effect < 30:
+                print(f"Rebooting due to gpu effect={effect}")
+#                self.reboot(inst)
+
             # Reboot if hashrate is low (but not zero which means there is no miner stats available)
             elif (hpg > 1) and (hpg < MIN_HASH_PER_GPU):
                 print(f"Rebooting due to Hashrate per gpu={hpg}")
-                self.reboot(inst)
+#                self.reboot(inst)
 
             elif (hpd > 1) and (hpd < hash_per_usd_min):
                 print(f"Rebooting due to Hashrate per dollar={hpd}")
-                self.reboot(inst)
+#                self.reboot(inst)
 
         miner_group_table = MinerPerformanceTable(self.vast_cache)
         miner_group_table.print()
 
         now = int(datetime.now().timestamp())
         balances = get_balances(now, 1.0, 1.1)
+        min_effect = 41.0
+
+        if not balances:
+            return
 
         for mg in miner_group_table.miner_groups:
             if mg.id.lower() == config.ADDR.lower():
                 wallet_balances = balances.get_for_addr(mg.id)
                 delta: XenBlocksWallet = mg.balance.difference(wallet_balances)
                 effect: float = calc_effect(mg.active_gpus, delta.block_per_hour())
-                if 0 <= effect <= 30.0:
-                    print(f"Rebooting miner group due to low effect: {effect}%")
+                if 0 <= effect < min_effect:
+                    print(f"Rebooting miner group due to low effect: {int(effect)} %")
                     self.reboot_miner_group(mg)
                 else:
                     print(f"Miner group effect: {effect}%")
@@ -388,18 +405,37 @@ class VastTradingBotSM:
             print(Field.attention(f"No offers above required flops per dph found: {dflop_min}"))
         else:
             for offer in offers:
+                print(f"Compute Cap: {offer.compute_cap}, CUDA max: {offer.cuda_max}, Offer dflops: {offer.flops_per_dphtotal}")
+
                 #                        best_offer: VastOffer = offers
                 # Increase bid price
                 price: float = offer.min_bid
                 price = price * 1.01
 
                 if offer.flops_per_dphtotal > dflop_min:
-                    print(Field.attention(f"Creating instance: {offer.id}"))
-                    created_id = self.vast.create_instance(config.ADDR, offer.id, price)
-                    bought_instances.append(created_id)
+                    created_id = self.buy_offer(offer, price)
+                    if created_id > 0:
+                        bought_instances.append(created_id)
+
+                if len(bought_instances) > 4:
+                    return bought_instances
 
         return bought_instances
 
+
+    def buy_offer(self, offer: VastOffer, price: float) -> int:
+        last_bought = VastOfferRepo().get(offer.id)
+
+        diff_seconds: int = int(datetime.now().timestamp()) - last_bought
+
+        if diff_seconds < 45*60:
+            print(Field.attention(f"Bad instance: {offer.id}. Will not buy!!!"))
+            return 0
+        else:
+            VastOfferRepo().put(offer.id, int(datetime.now().timestamp()))
+            print(Field.attention(f"Creating instance: {offer.id}"))
+            contract_id = self.vast.create_instance(config.ADDR, offer.id, price, self.template)
+            return contract_id
 
     #
     #   Slowly increase bids
@@ -443,9 +479,6 @@ class VastTradingBotSM:
 
 
     def should_bid(self, instance: VastInstance):
-        excluded = [10700258]
-        if instance.cid in excluded:
-            return False
 
         return instance.dflop_for_min_bid() > DFLOP_MIN_BID and instance.is_outbid()
 

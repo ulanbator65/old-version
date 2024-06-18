@@ -100,7 +100,7 @@ class VastMinerRealtimeTable:
 
     def print_table(self):
         table: ColorTable = ColorTable(theme=THEME1)
-        h = ["#", "Vast ID", "GPUs", "Cost/h", "DFlop", "DFlop Min", "Ov", "Hash", "Hash/$", "Hours", "BLK/h", "BLK $", "BLK/d", "BLK", "SUP", "XUNI", "Since", "Location", "Status", "Addr"]
+        h = ["#", "Vast ID", "GPUs", "Cost/h", "DFlop", "DFlop Min", "GPU", "Hash", "Hash/$", "Hours", "BLK/h", "BLK $", "BLK/d", "BLK", "SUP", "XUNI", "Since", "Location", "Status", "Addr"]
         table.field_names = h
         table.align = "r"
         table.float_format = ".2"
@@ -184,7 +184,7 @@ class VastMinerRealtimeTable:
 
 
     def add_row(self, table: ColorTable, row: list, color: str):
-        justified_row: list = self.justify_row(row)
+        justified_row: list = row
         formatted_row: list = []
         field = Field(color)
 
@@ -201,6 +201,7 @@ class VastMinerRealtimeTable:
         override = "X" if ins.is_manual_override() else ""
         miner_status = ins.miner_status[0:2]
         hpd = f"{ins.miner.hashrate_per_dollar():.0f}" if ins.miner.hashrate_per_dollar() > 0 else ins.last_active.strftime('%m-%d %H:%M')
+        effect = int(ins.gpu_effect) if ins.gpu_effect else 0
 
         return [
             str(row_nr),
@@ -211,7 +212,7 @@ class VastMinerRealtimeTable:
             # 5
             f"{ins.dflop_for_min_bid():.0f}",
             # Miner data
-            override,
+            f"{effect}%",
             str(ins.miner.hashrate),
             hpd,
             str(round(ins.miner.duration_hours, 2)),
@@ -231,41 +232,13 @@ class VastMinerRealtimeTable:
             addr
         ]
 
-    def justify_row(self, row: list):
-        return [
-            row[0],
-            row[1],
-            row[2],
-            row[3],
-            row[4],
-            # 5
-            row[5],
-            row[6],
-            row[7],
-            row[8],
-            row[9],
-            # 10
-            row[10],
-            row[11],
-            row[12],
-            row[13],
-            row[14],
-            # 15
-            row[15],
-            row[16],
-            row[17],
-            row[18],
-            row[19],
-            # 20
-        ]
-
-
 
     def get_row_for_reserved_instance(self, row_nr: int, rental_since: str, inst: VastInstance) -> list:
 
         addr = inst.addr[0:6] + "*" if inst.addr else "-"
         link = f"http://" + inst.get_host() if inst.get_host() else "N/A"
-        hpd = inst.last_active.strftime('%m-%d %H:%M') if inst.last_active else "-"
+        hpd = inst.last_active.strftime('%d %H:%M') if inst.last_active else "-"
+        effect = int(inst.gpu_effect) if inst.gpu_effect else 0
         return [
             str(row_nr),
             str(inst.cid),
@@ -274,7 +247,7 @@ class VastMinerRealtimeTable:
             f"{inst.flops_per_dphtotal:.0f}",
             f"{inst.dflop_for_min_bid():.0f}",
             #  Miner data
-            "-",
+            f"{effect}%",
             "-",
             hpd,
             "-",
@@ -298,7 +271,7 @@ class VastMinerRealtimeTable:
             # Vast instance
             "",
             "Totals",
-            f"{self.tot_active_gpus}",
+            f"{self.tot_active_gpus} ({config.MAX_GPU})",
             f"${self.tot_cost:.2f}",
             "",
             "",
@@ -345,7 +318,9 @@ class VastMinerRealtimeTable:
 
 
     def get_row_color(self, ins: VastInstance):
-        if ins.is_miner_online() and ins.miner.hashrate < 1.0:
+        effect = int(ins.gpu_effect) if ins.gpu_effect else 0
+
+        if effect == 0:
             # Miner not started!
             # Reboot!!!
 #            raise Exception("Instance needs Reboot!!! Miner is not started")
@@ -357,6 +332,9 @@ class VastMinerRealtimeTable:
 
         elif ins.is_managed and not ins.is_miner_online():
             return C_HIGH_ALERT
+
+        elif ins.is_miner_online() and ins.miner.hashrate < 1.0:
+            return C_ATTENTION
 
         elif not ins.is_miner_online():
             return C_ATTENTION

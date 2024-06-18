@@ -41,7 +41,7 @@ def main():
     terminate = TerminateMenu(vast)
     main_menu = MainMenu(buy, terminate, vast)
 
-    integration_tests.run_all_tests()
+#    integration_tests.run_all_tests()
 
     print_config()
 

@@ -72,8 +72,11 @@ class HistoryManagerSM:
 
         balances = HistoricalBalances(timestamp, vast_balance, wallet_balances)
 
-        log.info(f"Saving historical balances: {len(balances.wallet_balances)}")
-        self.history_db.save_balance(balances)
+        if balances:
+            log.info(f"Saving historical balances: {len(balances.wallet_balances)}")
+            self.history_db.save_balance(balances)
+        else:
+            log.error(f"Saving historical balances: {len(balances.wallet_balances)}")
 
         return self.s_completed
 

@@ -2,6 +2,7 @@
 from VastClient import *
 from VastCache import VastCache
 from VastOffer import VastOffer
+from VastTemplate import VastTemplate
 import config
 from Field import *
 
@@ -240,7 +241,7 @@ class Automation:
         print("Price: ", offer.get('dph_total'))
         print("Adjusted Price: ", price)
 
-        return self.vast.create_instance(config.ADDR, offer.id, price)
+        return self.vast.create_instance(config.ADDR, offer.id, price, VastTemplate(config.API_KEY))
 
 
 

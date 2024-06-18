@@ -17,6 +17,23 @@ class VastAiCLI:
 
 
     def create(self, addr: str, instance_id: int, price: float) -> dict:
+        cuda_ver = "11.6.0"
+        command = [
+            "vastai", "create", "instance", str(instance_id),
+            "--price", str(price),
+            "--image", "nvidia/cuda:11.6.1-devel-ubuntu20.04",
+#            "--image", "nvidia/cuda:11.8.0-devel-ubuntu20.04",
+            "--env", f"-e ACCOUNT={addr}",
+            "--onstart", "onstart.txt", #START_PAR,
+            "--disk", "7.944739963496298",
+            "--api-key", self.api_key,
+            "--ssh",
+            "--raw"
+        ]
+        result = self.run(command)
+        return self._stdout_to_dict(result)
+
+    def create2(self, addr: str, instance_id: int, price: float) -> dict:
         command = [
             "vastai", "create", "instance", str(instance_id),
             "--price", str(price),
@@ -68,7 +85,7 @@ class VastAiCLI:
 
 
     def delete_all(self, ids: list) -> dict:
-        command = ["vastai", "destroy", "instances", s, "--api-key", self.api_key]
+        command = ["vastai", "destroy", "instances", ids, "--api-key", self.api_key]
         result = self.run(command)
         return self._stdout_to_dict(result)
 
@@ -95,11 +112,11 @@ class VastAiCLI:
         return response
 
 
-    def run(self, command: list) -> str:
+    def run(self, cmd: list[str]) -> str:
         f = Field(GRAY)
-        print(f.format("INFO >>> "), f.format(str(command)))
+        print(f.format("INFO >>> "), f.format(str(cmd)))
 
-        response = self.__execute_command(command) #, capture_output=True, text=True)
+        response = self.__execute_cmd(cmd) #, capture_output=True, text=True)
 
         if not response:
             print("Error >>> no response received")
@@ -109,26 +126,12 @@ class VastAiCLI:
             return response.stdout
 
 
-    def run_old(self, command: list) -> dict:
-        f = Field(GRAY)
-        print(f.format("INFO >>> "), f.format(str(command)))
-
-        response = self.__execute_command(command) #, capture_output=True, text=True)
-        if not response:
-            print("Error >>> no response received")
-
-        elif response.stderr:
-            print("Error >>> ", response.stderr.strip())
-
-        elif response.stdout:
-            try:
-                return json.loads(response.stdout)
-
-            except json.JSONDecodeError:
-                return {"success": False, "error": "Loading...", "stdout": response.stdout.strip()}
+    def execute_cmd(self, cmd: list[str]) -> dict:
+        result = self.run(cmd)
+        return self._stdout_to_dict(result)
 
 
-    def __execute_command(self, cmd: list) -> subprocess.CompletedProcess:
+    def __execute_cmd(self, cmd: list) -> subprocess.CompletedProcess:
         try:
             return subprocess.run(cmd, capture_output=True, text=True, check=True)
 
@@ -148,6 +151,7 @@ class VastAiCLI:
 
         for item in items:
             s = item.replace("'", "")
+            s = s.replace("\"", "")
             name_value_pair = s.split(":")
 
             d[name_value_pair[0].strip()] = name_value_pair[1].strip()
