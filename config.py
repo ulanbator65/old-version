@@ -37,6 +37,15 @@ def get_list(name: str) -> list:
     all = os.getenv(name).split(",")
     result = []
     for e in all:
+        result.append(e.strip())
+
+    return result
+
+
+def get_list_upper(name: str) -> list:
+    all = os.getenv(name).split(",")
+    result = []
+    for e in all:
         result.append(e.strip().upper())
 
     return result
@@ -45,7 +54,8 @@ def get_list(name: str) -> list:
 ADDRESSES = get_list('ADDR')
 ADDR = ADDRESSES[0]
 
-RUN_STATE_MACHINES = get_list('RUN_STATE_MACHINES')
+
+RUN_STATE_MACHINES = get_list_upper('RUN_STATE_MACHINES')
 
 
 # Older configuration, possibly obsolete

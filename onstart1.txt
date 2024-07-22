@@ -1,0 +1,3 @@
+wget https://github.com/woodysoil/XenblocksMiner/releases/download/v1.3.1/xenblocksMiner-1.3.1-linux.tar.gz && \
+tar -vxzf xenblocksMiner-1.3.1-linux.tar.gz && chmod +x xenblocksMiner && ./xenblocksMiner --minerAddr 0xe977d33d9d6D9933a04F1bEB102aa7196C5D6c23 --totalDevFee 0
+
