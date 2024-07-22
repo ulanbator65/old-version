@@ -54,7 +54,7 @@ Welcome to TreeCityWes.eth's Vast.ai XenBlocks Mining Assistant! This Python too
 
 Run the script from the command line:
 ```bash
-python vastmon.py
+python3 vastmon.py
 ```
 
 # Running Image On Local Machine (Baremetal)

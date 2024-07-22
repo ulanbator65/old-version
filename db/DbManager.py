@@ -14,7 +14,7 @@ class DbManager:
         return sqlite3.connect(self.db_name)
 
 
-    def select(self, prepared_statement: str, params: tuple) -> list[tuple]:
+    def select(self, prepared_statement: str, params: tuple) -> list:
         with closing(self._open()) as connection:
             return connection.cursor()\
                 .execute(prepared_statement, params).fetchall()
