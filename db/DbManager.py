@@ -19,7 +19,7 @@ class DbManager:
             return connection.cursor()\
                 .execute(prepared_statement, params).fetchall()
 
-    def select_all(self, sql: str) -> list[tuple]:
+    def select_all(self, sql: str) -> list:
         with closing(self._open()) as connection:
             return connection.cursor() \
                 .execute(sql).fetchall()
