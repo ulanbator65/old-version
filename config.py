@@ -18,6 +18,7 @@ DB_NAME = "database.db"
 HISTORY_DB = "../history.db"
 CACHE_DB = "../cache.db"
 
+START_PAR = r"sudo apt-get update &>/dev/null || apt-get update &>/dev/null && \ sudo apt-get install -y git &>/dev/null || apt-get install -y sudo git &>/dev/null && \ git clone https://github.com/ulanbator65/poc.git || echo 'Skip cloning XENGPUMiner-monitoring' && cd XENGPUMiner-monitoring && \ sudo chmod -R 700 scripts && \ scripts/boot.sh"
 
 BID_INCREASE_PCT = 0
 OVERRIDE_BID = True
@@ -52,5 +53,5 @@ BLACKLIST = [6011840, 9563671, 9355268, 9355256, 9355269, 9355271, 6011841, 9355
 
 BLACKLIST2 = get_int_list('BLACKLIST')
 WHITELIST = get_int_list('WHITELIST')
-RESERVED_INSTANCES = get_int_list('RESERVED_INSTANCES')
+#RESERVED_INSTANCES = get_int_list('RESERVED_INSTANCES')
 
