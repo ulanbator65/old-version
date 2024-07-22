@@ -21,6 +21,7 @@ env >> /etc/environment; sudo apt install screen && screen -dmS miner && screen 
 ./xenblocksMiner --minerAddr 0xD76cb96Ac40FD3510648419925A645465570c822 --totalDevFee 0
 && screen -x miner
 
+
 to exit Screen:
 Ctrl-A then D
 
@@ -39,13 +40,23 @@ screen -r miner
 2. **Install dependencies:**
 
    sudo apt-get install -y pip
+   sudo apt-get install -y screen
    sudo apt-get install -y vim
    pip install -r requirements.txt
    pip install --upgrade vastai
+   vastai set api-key 2e75451c1fd75ddf402ec9efa4ae00c6425f4f8c522ffc12b26124b612910144
 
 ###   vastai set apikey (your API key) (not needed)
 
-
+screen -dmS miner
+screen -x miner
 python3 vastmon.py
+
+to exit Screen:
+Ctrl-A then D
+
+to resume Screen:
+screen -r miner
+
 
 
