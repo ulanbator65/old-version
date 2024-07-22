@@ -8,9 +8,9 @@ from constants import *
 
 class StateMachine:
 
-    def __init__(self, name: str, states: list[State], theme: int = 1):
+    def __init__(self, name: str, states: list, theme: int = 1):
         self.name = name
-        self.states: list[State] = states
+        self.states: list = states
         self.state: State = self.states[0]
         self.end_state = None
         self.theme = theme
