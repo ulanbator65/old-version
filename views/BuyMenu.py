@@ -2,6 +2,7 @@
 from VastQuery import VastQuery
 from VastClient import VastClient
 from VastOffer import VastOffer
+from VastTemplate import VastTemplate
 from prettytable.colortable import *
 from Menu import Menu as Menu
 from Field import Field
@@ -114,7 +115,7 @@ class BuyMenu:
         price = offer.increase_price(1)
         print("Adjusted Price: ", price)
 
-        return self.vast.create_instance(config.ADDR, offer.id, price)
+        return self.vast.create_instance(config.ADDR, offer.id, price, VastTemplate(config.API_KEY))
 
 
     def print_result(self, result: int, id: int):

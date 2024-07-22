@@ -33,7 +33,7 @@ MINUTES = 60*SECONDS
 
 @auto_str
 class VastClient:
-    def __init__(self, api_key, blacklist, vast_cli: VastAiCLI = VastAiCLI(config.DB_NAME)):
+    def __init__(self, api_key, blacklist, vast_cli: VastAiCLI = VastAiCLI(config.API_KEY)):
         self.api_key = api_key
         self.blacklist = blacklist
         self.vast_cli = vast_cli

@@ -217,7 +217,7 @@ class VastMinerRealtimeTable:
             hpd,
             str(round(ins.miner.duration_hours, 2)),
             # 10
-            str(round(ins.miner.block_rate(), 2)),
+            f"${ins.miner.block_rate():.1f}",
             f"${ins.miner.block_cost():.3f}",
             f"{ins.miner.blocks_per_day():.1f}",          # 7
             str(ins.miner.block),          # 7

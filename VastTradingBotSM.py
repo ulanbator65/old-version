@@ -1,14 +1,11 @@
-
-from datetime import datetime, timedelta
 import XenBlocksCache as Cache
+from db.CacheLock import CacheLock
 from Automation import Automation
 from VastInstance import *
 from VastClient import VastClient
 from VastCache import VastCache
 from VastOffer import VastOffer
 from VastTemplate import VastTemplate
-from db.VastOfferRepo import VastOfferRepo
-from OfferMap import OfferMap
 import config
 from Field import *
 from statemachine.StateMachine import State, StateMachine
@@ -34,17 +31,18 @@ S_MANAGE_MINERS = "Manage Miners"
 S_PURGE = "Purge underperforming instance"
 S_INCREASE_BID = "Increase bid"
 
-DFLOP_MIN_BID = 1150
-DFLOP_KEEP = 1150
-DFLOP_BUY = 1150
-
+DEFAULT = 800
+DFLOP_MIN_BID = DEFAULT
+DFLOP_KEEP = DEFAULT
+DFLOP_BUY = DEFAULT
+        
 MIN_HASH_PER_GPU = 2100
 # Minimum hashrate per dollar, purge instances below
-HASH_PER_USD_MIN: int = 82000
+HASH_PER_USD_MIN: int = 72000
 
 
 MAX_ALLOCATED_GPUS = int(config.MAX_GPU)
-MAX_ACTIVE_GPUS = 28
+MAX_ACTIVE_GPUS = 98
 
 TARGET_BLOCK_COST = 0.033
 
@@ -74,6 +72,7 @@ class VastTradingBotSM:
         self.difficulty: int = Cache.get_difficulty()
         self.started_instances = []
         self.count = 0
+        self.cache_lock = CacheLock()
 
         self.s_started = State(1, S_START,
                                [f"DFLOP min: {DFLOP_MIN_BID}",
@@ -120,9 +119,11 @@ class VastTradingBotSM:
 
     # Buy cheap GPUs
     def state_buy_gpus(self, time_tick: datetime) -> State:
+        self.cache_lock.aquire_lock(config.ADDR)
 
         self.buy_new_miners(DFLOP_BUY)
 
+        self.cache_lock.release_lock()
         return self.get_next_state(time_tick)
 
 
@@ -132,7 +133,7 @@ class VastTradingBotSM:
         instances = self.get_vast_instances()
         VastMinerRealtimeTable(instances).print_table()
 
-        self.kill_outbid_instances(instances)
+#        self.kill_outbid_instances(instances)
 
         return self.get_next_state(time_tick)
 
@@ -147,6 +148,9 @@ class VastTradingBotSM:
 
 
     def state_purge_miners(self, time_tick: datetime) -> State:
+        instances = self.get_vast_instances()
+        VastMinerRealtimeTable(instances).print_table()
+        self.kill_outbid_instances(instances)
         self.purge_instances()
         return self.get_next_state(time_tick)
 
@@ -179,6 +183,9 @@ class VastTradingBotSM:
 
         self.print_difficulty()
 
+        #
+        # Change State
+        #
         state: State = self.sm.state
         # Start
         if state == self.s_started:
@@ -253,7 +260,7 @@ class VastTradingBotSM:
             hpd: int = inst.hashrate_per_dollar()
 
             if inst.is_miner_online() and inst.hashrate() < 444:
-                print(f"Kill instance due to Hashrate is zero ({inst.hashrate()})")
+                print(f"Kill instance {inst.machine_id} due to Hashrate is zero ({inst.hashrate()})")
 #                offer_id = OfferMap().get(inst.cid)
 #                VastOfferRepo().put(offer_id, True)
 #                self.kill_instance(inst)
@@ -280,11 +287,12 @@ class VastTradingBotSM:
             #  but I still don't own the instance. So I will delete my bid
             if inst.is_outbid() and (inst.flops_per_dphtotal < (inst.dflop_for_min_bid() - 4)):
                 log.error(f"Suspicious instance, will be deleted: {inst.cid}")
-#                delete = True
+                delete = True
 
-            elif not inst.is_running() and (inst.dflop_for_min_bid() < DFLOP_KEEP):
+            elif (inst.dflop_for_min_bid() < DFLOP_KEEP):
                 self.log_attention(f"Stopping id={inst.cid} due to outbid:  Instance DFLOP min bid: {int(inst.dflop_for_min_bid())}")
                 delete = True
+                self.vast_cache.put_offer_last_bought(inst.machine_id, int(datetime.now().timestamp()))
 
             if delete:
                 self.kill_instance(inst)
@@ -405,7 +413,7 @@ class VastTradingBotSM:
             print(Field.attention(f"No offers above required flops per dph found: {dflop_min}"))
         else:
             for offer in offers:
-                print(f"Compute Cap: {offer.compute_cap}, CUDA max: {offer.cuda_max}, Offer dflops: {offer.flops_per_dphtotal}")
+                print(f"Compute Cap: {offer.compute_cap}, CUDA max: {offer.cuda_max}, Dflops: {offer.flops_per_dphtotal}, M-ID: {offer.machine_id}")
 
                 #                        best_offer: VastOffer = offers
                 # Increase bid price
@@ -417,23 +425,22 @@ class VastTradingBotSM:
                     if created_id > 0:
                         bought_instances.append(created_id)
 
-                if len(bought_instances) > 4:
+                if len(bought_instances) > 3:
                     return bought_instances
 
         return bought_instances
 
 
     def buy_offer(self, offer: VastOffer, price: float) -> int:
-        last_bought = VastOfferRepo().get(offer.id)
+        last_bought: int = self.vast_cache.get_offer_last_bought(offer.machine_id)
 
         diff_seconds: int = int(datetime.now().timestamp()) - last_bought
 
         if diff_seconds < 45*60:
-            print(Field.attention(f"Bad instance: {offer.id}. Will not buy!!!"))
+            print(Field.attention(f"Bad offer: {offer.id}. Will not buy!!!"))
             return 0
         else:
-            VastOfferRepo().put(offer.id, int(datetime.now().timestamp()))
-            print(Field.attention(f"Creating instance: {offer.id}"))
+            print(Field.attention(f"Creating offer id: {offer.id}"))
             contract_id = self.vast.create_instance(config.ADDR, offer.id, price, self.template)
             return contract_id
 
@@ -497,8 +504,10 @@ class VastTradingBotSM:
         self.vast.load_miner_data(instances)
         return instances
 
+
     def is_managed_instance(self, instance: VastInstance):
-        return instance.has_address(config.ADDR)
+        return True
+#        return instance.has_address(config.ADDR)
 
 
     def log_attention(self, info: str):

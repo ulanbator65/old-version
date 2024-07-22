@@ -4,6 +4,7 @@ import requests
 from db.DbCache import DbCache
 from VastBalanceCache import VastBalanceCache
 from VastInstanceCache import VastInstanceCache
+from VastOfferCache import VastOfferCache
 from VastInstance import VastInstance
 from VastClient import VastClient
 
@@ -43,3 +44,14 @@ class VastCache:
         result = list(iterator)
         return result
 
+
+    def get_offer_last_bought(self, offer_id: int) -> int:
+        cache = VastOfferCache(offer_id)
+        timestamp = DbCache().get_entity(cache)
+
+        return timestamp if timestamp else 0
+
+
+    def put_offer_last_bought(self, offer_id: int, timestamp: int):
+        cache = VastOfferCache(offer_id)
+        timestamp = DbCache().update(cache.get_key(), str(timestamp))
