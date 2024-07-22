@@ -9,6 +9,7 @@ class VastOffer:
         #        print(json)
         self.json: dict = json
         self.id: int = json.get('id')
+        self.machine_id: int = json.get('machine_id', 0)
         self.gpu_name: str = json.get('gpu_name')
         self.compute_cap: str = json.get('compute_cap')
         self.cuda_max: str = json.get('cuda_max_good')

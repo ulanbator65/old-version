@@ -274,9 +274,9 @@ class MinerPerformanceTable:
                 # 5
                 f"{int(calc_effect(mg.active_gpus, delta_1.block_per_hour())):} %",
                 f"{delta_1.duration_hours():.1f}",
-                to_string(block_rate1),
-                to_string(block_rate2),
-                to_string(block_per_day),
+                block_rate_to_string(block_rate1),
+                block_rate_to_string(block_rate2),
+                block_rate_to_string(block_per_day),
                 # 10
                 block_cost_to_string(block_cost),
                 "",
@@ -323,9 +323,9 @@ class MinerPerformanceTable:
             # 5
             f"{int(effect)} %",
             "",
-            f"{self.tot_block_rate1:.1f}",
-            to_string(self.tot_block_rate2),
-            f"{self.tot_block_per_day}",
+            block_rate_to_string(self.tot_block_rate1),
+            block_rate_to_string(self.tot_block_rate2),
+            block_rate_to_string(self.tot_block_per_day),
             # 10
             f"${self.tot_block_cost1:.3f}",
             block_cost_to_string(self.tot_block_cost2),
@@ -465,6 +465,12 @@ def get_superblocks(addr: str,
 
 def duration_hours(t1, t2):
     return (t1 - t2) / 3600
+
+
+def block_rate_to_string(value: float) -> str:
+    if value < 0.01:
+        return "-"
+    return f"{value:.1f}"
 
 
 def to_string(value: float) -> str:

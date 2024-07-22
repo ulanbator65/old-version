@@ -40,10 +40,9 @@ class VastInstance:
         self.actual_status: str = status if status and len(status) > 0 else "none"
         self.last_rebooted: int = int(datetime.now().timestamp())
         self.addr: str = None
+        self.machine_id: int = json.get('machine_id', 0)
 
-        env = json.get('extra_env')
-        if len(env) > 0:
-            self.addr: str = env[0][1]
+        self.addr = self._addr_from_json()
 
         self.last_active = None
         if self.is_running():
@@ -168,6 +167,21 @@ class VastInstance:
 
     def get_age_in_hours(self) -> float:
         return VastInstanceRules.age_in_hours(self.start_date)
+
+
+    def _addr_from_json(self) -> str:
+        # Method 1: from 'onstart.txt' file
+        onstart: str = self.json.get('onstart')
+        if len(onstart) > 10:
+            tokens = onstart.split(" ")
+            for token in tokens:
+                if token.startswith("0x"):
+                    return token
+
+        # Method 2 (deprecated): from env variable
+        env = self.json.get('extra_env')
+        if len(env) > 0:
+            return env[0][1]
 
 
     def print_states(self):

@@ -5,7 +5,7 @@ import json
 from VastQuery import VastQuery
 from VastOffer import VastOffer
 from tostring import auto_str
-from config import *
+import config as conf
 from Field import Field
 from constants import *
 
@@ -24,7 +24,7 @@ class VastAiCLI:
             "--image", "nvidia/cuda:11.6.1-devel-ubuntu20.04",
 #            "--image", "nvidia/cuda:11.8.0-devel-ubuntu20.04",
             "--env", f"-e ACCOUNT={addr}",
-            "--onstart", "onstart.txt", #START_PAR,
+            "--onstart", conf.ONSTART,
             "--disk", "7.944739963496298",
             "--api-key", self.api_key,
             "--ssh",
@@ -37,7 +37,7 @@ class VastAiCLI:
         command = [
             "vastai", "create", "instance", str(instance_id),
             "--price", str(price),
-            "--image", VAST_IMAGE,
+            "--image", conf.VAST_IMAGE,
             "--env", f"-e ADDR={addr}",
             "--args", "--args ...",
             "--api-key", self.api_key,
@@ -51,7 +51,7 @@ class VastAiCLI:
         command = [
             "vastai", "create", "instance", str(instance_id),
             "--price", str(price),
-            "--image", VAST_IMAGE,
+            "--image", conf.VAST_IMAGE,
 #            "--env", "null",
             "--env", f"-e ADDR={addr}",
             "--disk", "16",

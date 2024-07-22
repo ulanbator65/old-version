@@ -27,7 +27,7 @@ class VastTemplate:
             #            "--image", "nvidia/cuda:11.8.0-devel-ubuntu20.04",
             "--env", f"-e ADDR={addr}",
 #            "--env", f"-e ACCOUNT={addr}",
-            "--onstart", "onstart.txt", #START_PAR,
+            "--onstart", conf.ONSTART, #START_PAR,
             "--disk", "7.944739963496298",
             "--api-key", self.api_key,
             "--ssh",
