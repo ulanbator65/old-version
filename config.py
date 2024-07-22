@@ -33,7 +33,7 @@ def get_int_list(name: str) -> list:
     return result
 
 
-def get_list(name: str) -> list[str]:
+def get_list(name: str) -> list:
     all = os.getenv(name).split(",")
     result = []
     for e in all:

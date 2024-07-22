@@ -151,7 +151,7 @@ class BuyMenu:
 
 
     def search_top_offers(self, max_result: int, max_bid: float,
-                          criterion='dph_total', gpu_model='') -> list[VastOffer]:
+                          criterion='dph_total', gpu_model='') -> list:
 
         query = VastQuery.gpu_model_query(gpu_model)
         query.max_bid = max_bid

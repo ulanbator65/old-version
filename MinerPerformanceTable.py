@@ -105,7 +105,7 @@ class MinerPerformanceTable:
         self.snapshot_time = datetime.now()
 
 
-    def get_instances_for_address(self, addr: str) -> list[VastInstance]:
+    def get_instances_for_address(self, addr: str) -> list:
         return list(filter(lambda x: x.addr and x.addr.lower() == addr.lower(), self.vast_instances))
 
     def sort_on_cost(self):

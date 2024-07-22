@@ -60,7 +60,7 @@ def string_to_unix_epoch(date_string):
         date_object = datetime.strptime(date_string, "%m/%d/%Y")
         return time.mktime(date_object.timetuple())
 
-def fix_date_fields(query: Dict[str, Dict], date_fields: List[str]):
+def fix_date_fields(query: Dict[str, Dict], date_fields: list):
     """Takes in a query and date fields to correct and returns query with appropriate epoch dates"""
     new_query: Dict[str, Dict] = {}
     for field, sub_query in query.items():

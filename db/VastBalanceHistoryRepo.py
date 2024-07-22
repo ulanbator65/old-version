@@ -40,16 +40,16 @@ class VastBalanceHistoryRepo:
 
     def get(self, timestamp: int) -> float:
         params: tuple = (timestamp,)
-        result: list[tuple] = self.db.select(SELECT, params)
+        result: list = self.db.select(SELECT, params)
         row = result[0]
         return row[1]
 
 
-    def get_all(self) -> list[tuple]:
+    def get_all(self) -> list:
         return self.db.execute(SELECT_ALL)
 
 
-    def get_from_timestamp(self, timestamp: int) -> list[tuple]:
+    def get_from_timestamp(self, timestamp: int) -> list:
 
         params: tuple = (timestamp,)
         return self.db.select(SELECT_FROM_TIMESTAMP, params)

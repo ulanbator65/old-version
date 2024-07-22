@@ -40,7 +40,7 @@ class VastClient:
         self.load_miner_stats = False
 
 
-    def get_instances(self) -> list[VastInstance]:
+    def get_instances(self) -> list:
         instances = []
         try:
             data: dict = self.get_cached_instances()
@@ -142,7 +142,7 @@ class VastClient:
             print(f.format(f"Failed to terminate instance {ids}."))
 
 
-    def get_offers(self, query: VastQuery) -> list[VastOffer]:
+    def get_offers(self, query: VastQuery) -> list:
         return self.vast_cli.get_offers(query)
 
 

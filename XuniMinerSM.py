@@ -39,7 +39,7 @@ class XuniMinerSM:
         self.vast: VastClient = vast
         self.vast_cache = VastCache(vast)
         self.automation = Automation(vast)
-        self.xuni_miners: list[int] = []
+        self.xuni_miners: list = []
         self.total_blocks = 0
         self.previous_time_tick: datetime = datetime.now()
         self.mining_start: datetime = None
@@ -257,8 +257,8 @@ class XuniMinerSM:
     def buy_miners_for_xuni(self, dflop_min: int):
         self.log_attention("Buy miners for XUNI...")
 
-        offers1: list[VastOffer] = self.automation.offers_A40(dflop_min)
-        offers2: list[VastOffer] = self.automation.offers_A5000(dflop_min)
+        offers1: list = self.automation.offers_A40(dflop_min)
+        offers2: list = self.automation.offers_A5000(dflop_min)
 
         self.xuni_miners = self.buy_miners(dflop_min, offers1 + offers2)
 
@@ -294,7 +294,7 @@ class XuniMinerSM:
         self.log_attention("Done!")
 
 
-    def kill_outbid_instances(self, instances: list[VastInstance]):
+    def kill_outbid_instances(self, instances: list):
         self.log_attention("Kill outbid instances...")
 
         for inst in instances:
@@ -307,7 +307,7 @@ class XuniMinerSM:
 
 
 
-    def kill_instances(self, instances: list[VastInstance]):
+    def kill_instances(self, instances: list):
         for inst in instances:
             self.vast.kill_instance(inst.cid)
 
@@ -336,7 +336,7 @@ class XuniMinerSM:
         self.log_attention("Done!")
 
 
-    def handle_low_performing_instances(self, instances: list[VastInstance], hash_per_usd_min: int):
+    def handle_low_performing_instances(self, instances: list, hash_per_usd_min: int):
         self.log_attention("Handle low performing instances...")
 
         limit_hashrate = 0
@@ -359,7 +359,7 @@ class XuniMinerSM:
         self.log_attention("Done!")
 
 
-    def kill_unable_to_start_instances(self, instances: list[VastInstance]):
+    def kill_unable_to_start_instances(self, instances: list):
         self.log_attention("Kill instances unable to start...")
 
         to_kill = []
@@ -376,7 +376,7 @@ class XuniMinerSM:
         self.log_attention("Done!")
 
 
-    def buy_miners(self, dflop_min: int, offers: list[VastOffer]) -> list[int]:
+    def buy_miners(self, dflop_min: int, offers: list) -> list:
         bought_instances = []
 
         if len(offers) == 0:
@@ -399,7 +399,7 @@ class XuniMinerSM:
     #
     #   Slowly increase bids
     #
-    def increase_bid(self, instances: list[VastInstance]):
+    def increase_bid(self, instances: list):
 
         outbid_instances = list(filter(lambda x: self.should_bid(x), instances))
         sort_on_dflop(outbid_instances)
@@ -420,7 +420,7 @@ class XuniMinerSM:
         return instance.is_outbid() and instance.num_gpus > 0
 
 
-    def get_xuni_miners(self) -> list[VastInstance]:
+    def get_xuni_miners(self) -> list:
         instances = self.vast_cache.get_selected_instances(self.xuni_miners)
 
         if len(instances) < 1:
@@ -430,7 +430,7 @@ class XuniMinerSM:
         return instances
 
 
-    def get_vast_instances(self) -> list[VastInstance]:
+    def get_vast_instances(self) -> list:
         instances = self.vast_cache.get_instances()
         instances = list(filter(lambda x: self.is_managed_instance(x), instances))
         self.vast.load_miner_data(instances)
@@ -473,7 +473,7 @@ class XuniMinerSM:
 dflop = lambda x: x.flops_per_dphtotal
 
 
-def sort_on_dflop(instances: list[VastInstance]):
+def sort_on_dflop(instances: list):
     sorted(instances, key=dflop, reverse=True)
 
 

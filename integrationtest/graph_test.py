@@ -15,7 +15,7 @@ def test_all2():
     t0 = t1 - timedelta(hours=24)
     t_fallback = t1 - timedelta(hours=1)
 
-    balances: list[XenBlocksWallet] = XenBlocksWalletHistoryRepo().get_history(addr)
+    balances: list = XenBlocksWalletHistoryRepo().get_history(addr)
     balances.reverse()
     print(len(balances))
 
@@ -51,7 +51,7 @@ def test_all1():
 
 def test_all():
 
-    vast_balances: list[tuple] = VastBalanceHistoryRepo().get_from_timestamp(0)
+    vast_balances: list = VastBalanceHistoryRepo().get_from_timestamp(0)
     vast_balances.reverse()
 
     time_axis = []
@@ -113,7 +113,7 @@ def test_all():
 
 
 def get_balances() -> tuple:
-    vast_balances: list[tuple] = VastBalanceHistoryRepo().get_from_timestamp(0)
+    vast_balances: list = VastBalanceHistoryRepo().get_from_timestamp(0)
     vast_balances.reverse()
 
     timestamps = []
@@ -133,7 +133,7 @@ def get_balances() -> tuple:
     return timestamps, block_count, usd_balance
 
 
-def get_total_block_balance(balances: list[XenBlocksWallet]) -> int:
+def get_total_block_balance(balances: list) -> int:
     block = 0
     for b in balances:
         block += b.block

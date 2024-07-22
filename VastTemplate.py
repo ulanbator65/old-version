@@ -10,7 +10,7 @@ class VastTemplate:
         self.cuda_ver = "11.6.1"
 
 
-    def get_create_cmd(self, addr: str, offer_id: int, price: float) -> list[str]:
+    def get_create_cmd(self, addr: str, offer_id: int, price: float) -> list:
         return self.get_create_cmd_11_6(addr, offer_id, price)
 #        return self.get_create_cmd_smit(addr, offer_id, price)
 
@@ -19,7 +19,7 @@ class VastTemplate:
 #  scp -P 18342 root@ssh5.vast.ai:/root/poc/copa/xengpuminer ./
 
 
-    def get_create_cmd_11_6(self, addr: str, offer_id: int, price: float) -> list[str]:
+    def get_create_cmd_11_6(self, addr: str, offer_id: int, price: float) -> list:
         return [
             "vastai", "create", "instance", str(offer_id),
             "--price", str(price),
@@ -34,7 +34,7 @@ class VastTemplate:
             "--raw"
         ]
 
-    def get_create_cmd_smit(self, addr: str, offer_id: int, price: float) -> list[str]:
+    def get_create_cmd_smit(self, addr: str, offer_id: int, price: float) -> list:
         return [
             "vastai", "create", "instance", str(offer_id),
             "--price", str(price),

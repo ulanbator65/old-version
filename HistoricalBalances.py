@@ -6,9 +6,9 @@ from tostring import *
 @auto_str
 class HistoricalBalances:
 
-    def __init__(self, timestamp: int, vast_balance: float, wallet_balances: list[XenBlocksWallet] = []):
+    def __init__(self, timestamp: int, vast_balance: float, wallet_balances: list = []):
         self.vast_balance = vast_balance
-        self.wallet_balances: list[XenBlocksWallet] = wallet_balances
+        self.wallet_balances: list = wallet_balances
         self.timestamp: int = timestamp
 
 

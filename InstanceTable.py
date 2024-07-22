@@ -15,7 +15,7 @@ class InstanceTable:
     def __init__(self, vast: VastClient = VastClient(config.API_KEY, config.BLACKLIST)):
         self.vast = vast
         self.vast_cache = VastCache(vast)
-        self.instances: list[VastInstance] = []
+        self.instances: list = []
         self.snapshot_time: datetime = datetime.now()
         # Statistics
         self.miner_stats = None

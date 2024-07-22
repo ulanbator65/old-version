@@ -5,9 +5,9 @@ from XenBlocksWallet import XenBlocksWallet
 
 class MinerGroup:
 
-    def __init__(self, balance: XenBlocksWallet, vast_instances: list[VastInstance]):
+    def __init__(self, balance: XenBlocksWallet, vast_instances: list):
         self.id = balance.addr
-        self.instances: list[VastInstance] = vast_instances
+        self.instances: list = vast_instances
         self.balance: XenBlocksWallet = balance
         self.cost_ph = 0
         self.active_gpus = 0

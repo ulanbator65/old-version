@@ -79,7 +79,7 @@ class HistoryManager:
         return HistoricalBalances(found_timestamp, balance, wallet_balances)
 
 
-    def get_wallet_balances(self, timestamp_s: int) -> list[XenBlocksWallet]:
+    def get_wallet_balances(self, timestamp_s: int) -> list:
 
         return self.wallet_db.get_for_timestamp(timestamp_s)
 
@@ -114,7 +114,7 @@ class HistoryManager:
 
 
     def cleanup_db(self):
-        vast_balances: list[tuple] = self.vast_balance_db.get_all()
+        vast_balances: list = self.vast_balance_db.get_all()
 
         for b in vast_balances:
             wallet_balances = XenBlocksWalletHistoryRepo().get_for_timestamp(b[0])
@@ -130,7 +130,7 @@ class HistoryManager:
                     print("Successfully deleted VAST balance: ", b)
 
 
-def get_total_block_balance(balances: list[XenBlocksWallet]) -> int:
+def get_total_block_balance(balances: list) -> int:
     block = 0
     for b in balances:
         block += b.block

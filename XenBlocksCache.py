@@ -54,7 +54,7 @@ def _get_cached_wallet_balance(addr: str) -> str:
     cach_entry = DbCache().get(addr)
 
     if not cach_entry or cach_entry.is_expired(max_age_seconds):
-        cached_response: list[str] = xenblocks.get_xenblocks_balance()
+        cached_response: list = xenblocks.get_xenblocks_balance()
 
         # Call to endpoint was not successfull - fallback on older DB Cache value
         if (not cached_response or len(cached_response) == 0) and cach_entry:

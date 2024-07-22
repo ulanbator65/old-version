@@ -51,7 +51,7 @@ class XenBlocks:
             return 0
 
 
-    def get_xenblocks_balance(self) -> list[str]:
+    def get_xenblocks_balance(self) -> list:
         stats_table: list = []
         text = self.get_leaderboard()
 #        print(text[1100:1800])

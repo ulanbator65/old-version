@@ -113,7 +113,7 @@ class HistoryManagerSM:
             self.vast.reboot_instance(inst.cid)
 
 
-    def get_vast_instances(self) -> list[VastInstance]:
+    def get_vast_instances(self) -> list:
         instances = self.vast_cache.get_instances()
         instances = list(filter(lambda x: self.is_managed_instance(x), instances))
         self.vast.load_miner_data(instances)

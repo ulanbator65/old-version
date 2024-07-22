@@ -12,8 +12,8 @@ import config
 
 class VastMinerRealtimeTable:
 
-    def __init__(self, instances: list[VastInstance]):
-        self.instances: list[VastInstance] = instances
+    def __init__(self, instances: list):
+        self.instances: list = instances
         self.snapshot_time: datetime = datetime.now()
         # Statistics
         self.miner_stats = None

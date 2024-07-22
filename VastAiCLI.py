@@ -90,7 +90,7 @@ class VastAiCLI:
         return self._stdout_to_dict(result)
 
 
-    def get_offers(self, query: VastQuery) -> list[VastOffer]:
+    def get_offers(self, query: VastQuery) -> list:
         try:
             command = ["vastai", "search", "offers", query.get_query(), "--type", "bid", "--raw"]
             response = self.run(command)
@@ -112,7 +112,7 @@ class VastAiCLI:
         return response
 
 
-    def run(self, cmd: list[str]) -> str:
+    def run(self, cmd: list) -> str:
         f = Field(GRAY)
         print(f.format("INFO >>> "), f.format(str(cmd)))
 
@@ -126,7 +126,7 @@ class VastAiCLI:
             return response.stdout
 
 
-    def execute_cmd(self, cmd: list[str]) -> dict:
+    def execute_cmd(self, cmd: list) -> dict:
         result = self.run(cmd)
         return self._stdout_to_dict(result)
 

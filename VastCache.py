@@ -21,7 +21,7 @@ class VastCache:
         return DbCache().get_entity(cache)
 
 
-    def get_instances(self) -> list[VastInstance]:
+    def get_instances(self) -> list:
         instances = []
         try:
             cache = VastInstanceCache(self.vast)
@@ -38,7 +38,7 @@ class VastCache:
         return instances
 
 
-    def get_selected_instances(self, ids: list[int]) -> list[VastInstance]:
+    def get_selected_instances(self, ids: list) -> list:
         instances = self.get_instances()
         iterator = filter(lambda x: x.cid in ids, instances)
         result = list(iterator)

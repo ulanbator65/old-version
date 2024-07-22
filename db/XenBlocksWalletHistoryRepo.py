@@ -65,11 +65,11 @@ class XenBlocksWalletHistoryRepo:
         return True
 
 
-    def get_for_timestamp(self, timestamp: int) -> list[XenBlocksWallet]:
+    def get_for_timestamp(self, timestamp: int) -> list:
         params: tuple = (timestamp,)
         result = self.db.select(SELECT_TIMESTAMP, params)
 
-        balances: list[XenBlocksWallet] = []
+        balances: list = []
 
         for x in result:
             balances.append(self.map_row(x))
@@ -77,11 +77,11 @@ class XenBlocksWalletHistoryRepo:
         return balances
 
 
-    def get_history(self, addr: str) -> list[XenBlocksWallet]:
+    def get_history(self, addr: str) -> list:
         params: tuple = (addr,)
         result = self.db.select(SELECT, params)
 
-        history: list[XenBlocksWallet] = []
+        history: list = []
 
         for x in result:
             history.append(self.map_row(x))
@@ -95,7 +95,7 @@ class XenBlocksWalletHistoryRepo:
         return self.map_row(result[0]) if len(result) > 0 else None
 
 
-#    def get(self, addr: str, max_count: int = 99) -> list[tuple]:
+#    def get(self, addr: str, max_count: int = 99) -> list:
 #        params: tuple = (addr,)
 #        result = self.db.select(SELECT, params)
 #        return result[0:max_count] if len(result) >= max_count else result

@@ -89,7 +89,7 @@ class Automation:
             print(f"Bid DFLOP:  {inst.dflop_for_min_bid()}")
 
 
-    def offers_30_series(self) -> list[VastOffer]:
+    def offers_30_series(self) -> list:
         query1 = VastQuery.gpu_model_query("RTX_3060")
         query1.max_bid = 0.6
         query1.tflop_price = 350.0
@@ -102,7 +102,7 @@ class Automation:
         return self.sort_offers('flops_per_dphtotal', offers)[:40]
 
 
-    def offers_A40(self, dflop=220) -> list[VastOffer]:
+    def offers_A40(self, dflop=220) -> list:
         query = VastQuery.gpu_model_query("A40")
         query.max_bid = 0.99
 #        query.tflop_price = dflop
@@ -110,7 +110,7 @@ class Automation:
         return self.get_top_offers(query)
 
 
-    def selectTopOffersA4000(self) -> list[VastOffer]:
+    def selectTopOffersA4000(self) -> list:
         query = VastQuery.gpu_model_query("RTX_A4000")
         query.max_result = 10
         query.min_gpus = 8
@@ -120,7 +120,7 @@ class Automation:
         return self.get_top_offers(query)
 
 
-    def offers_A5000(self, dflop_min: int = 0) -> list[VastOffer]:
+    def offers_A5000(self, dflop_min: int = 0) -> list:
         query = VastQuery.gpu_model_query("RTX_A5000")
         query.max_result = 10
         query.max_bid = 0.99
@@ -129,20 +129,20 @@ class Automation:
         return self.get_top_offers(query)
 
 
-    def offers_A4000(self) -> list[VastOffer]:
+    def offers_A4000(self) -> list:
         query = VastQuery.gpu_model_query("RTX_A4000")
         query.max_result = 10
         query.max_bid = 0.99
         return self.get_top_offers(query)
 
 
-    def get_top_offers(self, query: VastQuery) -> list[VastOffer]:
+    def get_top_offers(self, query: VastQuery) -> list:
         top_offers = self.vast.get_offers(query)
 
         return self.sort_offers('flops_per_dphtotal', top_offers)[:query.max_result]
 
 
-    def sort_offers(self, column: str, offers: list[VastOffer]):
+    def sort_offers(self, column: str, offers: list):
         column = 'flops_per_dphtotal'
         return sorted(offers, key=lambda x: float(x.get(column, float('inf'))), reverse=True)
 
