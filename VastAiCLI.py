@@ -141,7 +141,7 @@ class VastAiCLI:
 
     def _stdout_to_dict(self, txt: str) -> dict:
 
-        if len(txt) < 2:
+        if not txt or len(txt) < 2:
             return None
 
         result = txt.split("{")
