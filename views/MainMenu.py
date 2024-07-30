@@ -54,13 +54,13 @@ class MainMenu:
                 "0x7c8d21F88291B70c1A05AE1F0Bc6B53E52c4f28a"]
 
         timestamp = int(datetime.now().timestamp())
-        rank: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(120, timestamp)
+        rank: XenBlocksWallet = XenBlocksCache.get_balance_for_rank(100, timestamp)
         w1_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[0], timestamp)
         w2_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[1], timestamp)
         w3_xuni: XenBlocksWallet = XenBlocksCache.get_wallet_balance(addr[2], timestamp)
 
         if rank:
-            log.info(LIGHT_PINK + "Rank 120: " + rank.to_str())
+            log.info(LIGHT_PINK + "Rank 100: " + rank.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w1_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w2_xuni.to_str())
             log.info(LIGHT_PINK + "XUNI: " + w3_xuni.to_str())

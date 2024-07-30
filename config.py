@@ -54,6 +54,7 @@ def get_list_upper(name: str) -> list:
 ADDRESSES = get_list('ADDR')
 ADDR = ADDRESSES[0]
 
+GPU_MODELS = get_list_upper('GPU_MODELS')
 
 RUN_STATE_MACHINES = get_list_upper('RUN_STATE_MACHINES')
 

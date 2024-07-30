@@ -425,7 +425,7 @@ class VastTradingBotSM:
                     if created_id > 0:
                         bought_instances.append(created_id)
 
-                if len(bought_instances) > 3:
+                if len(bought_instances) > 8:
                     return bought_instances
 
         return bought_instances
@@ -506,8 +506,8 @@ class VastTradingBotSM:
 
 
     def is_managed_instance(self, instance: VastInstance):
-        return True
-#        return instance.has_address(config.ADDR)
+#        return True
+        return instance.has_address(config.ADDR)
 
 
     def log_attention(self, info: str):

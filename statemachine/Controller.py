@@ -26,7 +26,7 @@ class Controller:
             for sm in self.state_machines:
                 sm.execute(time_tick)
 
-            time.sleep(60)
+            time.sleep(30)
 
 
     def get_time(self) -> datetime:
